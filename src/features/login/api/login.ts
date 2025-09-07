@@ -7,19 +7,15 @@ interface LoginCredentials {
 }
 
 export const loginUser = async (credentials: LoginCredentials) => {
-  try {
-    const auth = btoa(`${credentials.email}:${credentials.password}`);
-    const response = await axios.post(
-      `${API_URL}${API_ROUTES.LOGIN}`,
-      {},
-      {
-        headers: {
-          Authorization: `Basic ${auth}`,
-        },
-      }
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const auth = btoa(`${credentials.email}:${credentials.password}`);
+  const response = await axios.post(
+    `${API_URL}${API_ROUTES.LOGIN}`,
+    {},
+    {
+      headers: {
+        Authorization: `Basic ${auth}`,
+      },
+    }
+  );
+  return response.data;
 };
