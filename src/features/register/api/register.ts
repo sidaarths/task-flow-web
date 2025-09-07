@@ -14,8 +14,8 @@ export const registerUser = async (credentials: RegisterCredentials) => {
       {},
       {
         headers: {
-          'Authorization': `Basic ${auth}`
-        }
+          Authorization: `Basic ${auth}`,
+        },
       }
     );
     return response.data;

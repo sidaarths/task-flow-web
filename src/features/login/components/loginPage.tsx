@@ -20,14 +20,16 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     try {
       const response = await loginUser({ email, password });
       localStorage.setItem('token', response.token);
       // Redirect to dashboard after successful login
     } catch (error) {
       if (isAxiosError(error)) {
-        setError(error.response?.data?.message || 'An error occurred during login');
+        setError(
+          error.response?.data?.message || 'An error occurred during login'
+        );
       } else {
         setError('An unexpected error occurred. Please try again later.');
       }
@@ -45,15 +47,11 @@ export default function LoginPage() {
         <AuthForm
           onSubmit={handleSubmit}
           error={error}
-          submitButton={
-            <AuthButton type="submit">
-              Sign in
-            </AuthButton>
-          }
+          submitButton={<AuthButton type="submit">Sign in</AuthButton>}
           footerContent={
             <p className="text-center">
               <AuthLink href="/register">
-                Don't have an account? Sign up
+                Don&apos;t have an account? Sign up
               </AuthLink>
             </p>
           }

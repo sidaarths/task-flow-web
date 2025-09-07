@@ -4,7 +4,11 @@ interface AuthButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
 }
 
-export default function AuthButton({ children, className, ...props }: AuthButtonProps) {
+export default function AuthButton({
+  children,
+  className,
+  ...props
+}: AuthButtonProps) {
   return (
     <button
       className={`w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 

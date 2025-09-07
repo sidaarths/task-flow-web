@@ -14,8 +14,8 @@ export const loginUser = async (credentials: LoginCredentials) => {
       {},
       {
         headers: {
-          'Authorization': `Basic ${auth}`
-        }
+          Authorization: `Basic ${auth}`,
+        },
       }
     );
     return response.data;

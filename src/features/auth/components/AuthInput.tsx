@@ -5,10 +5,18 @@ interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement> {
   id: string;
 }
 
-export default function AuthInput({ label, id, className, ...props }: AuthInputProps) {
+export default function AuthInput({
+  label,
+  id,
+  className,
+  ...props
+}: AuthInputProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
         {label}
       </label>
       <input

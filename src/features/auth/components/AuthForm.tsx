@@ -10,13 +10,13 @@ interface AuthFormProps {
   className?: string;
 }
 
-export default function AuthForm({ 
-  onSubmit, 
-  error, 
-  children, 
-  submitButton, 
-  footerContent, 
-  className 
+export default function AuthForm({
+  onSubmit,
+  error,
+  children,
+  submitButton,
+  footerContent,
+  className,
 }: AuthFormProps) {
   return (
     <form onSubmit={onSubmit} className={`mt-8 space-y-6 ${className || ''}`}>
@@ -24,7 +24,7 @@ export default function AuthForm({
         {children}
         <AuthError message={error} />
       </div>
-      
+
       <div className="space-y-4">
         {submitButton}
         {footerContent}

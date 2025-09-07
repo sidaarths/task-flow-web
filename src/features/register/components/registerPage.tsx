@@ -24,7 +24,10 @@ export default function RegisterPage() {
       localStorage.setItem('token', response.token);
     } catch (err) {
       if (isAxiosError(err)) {
-        setError(err.response?.data?.message || 'Registration failed. Please try again.');
+        setError(
+          err.response?.data?.message ||
+            'Registration failed. Please try again.'
+        );
       } else {
         setError('An unexpected error occurred. Please try again later.');
       }
@@ -42,11 +45,7 @@ export default function RegisterPage() {
         <AuthForm
           onSubmit={handleSubmit}
           error={error}
-          submitButton={
-            <AuthButton type="submit">
-              Create account
-            </AuthButton>
-          }
+          submitButton={<AuthButton type="submit">Create account</AuthButton>}
           footerContent={
             <div className="text-center">
               <AuthLink href="/login">
