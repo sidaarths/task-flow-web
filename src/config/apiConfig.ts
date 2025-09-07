@@ -7,4 +7,7 @@ export const API_URL = isDev
 export const API_ROUTES = {
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',
+  USER_PROFILE: '/users/me',
+  BOARDS: '/boards',
+  USERS_SEARCH: '/users/search',
 };
