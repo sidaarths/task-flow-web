@@ -45,7 +45,7 @@ export default function HomePage() {
     return boards.filter(
       (board) =>
         board.title.toLowerCase().includes(query) ||
-        board.description.toLowerCase().includes(query)
+        board.description?.toLowerCase().includes(query)
     );
   }, [boards, searchQuery]);
 
