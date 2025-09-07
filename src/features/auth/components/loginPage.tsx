@@ -1,21 +1,23 @@
 'use client';
 import { useState, FormEvent } from 'react';
-import { loginUser } from '../api/login';
+import { useRouter } from 'next/navigation';
+import { loginUser } from '../api/auth';
+import { useAuth } from '@/context/AuthContext';
 import { isAxiosError } from 'axios';
-import {
-  AuthLayout,
-  AuthCard,
-  AuthHeader,
-  AuthForm,
-  AuthInput,
-  AuthButton,
-  AuthLink,
-} from '@/features/auth';
+import AuthLayout from './AuthLayout';
+import AuthCard from './AuthCard';
+import AuthHeader from './AuthHeader';
+import AuthForm from './AuthForm';
+import AuthButton from './AuthButton';
+import AuthLink from './AuthLink';
+import AuthInput from './AuthInput';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -23,8 +25,14 @@ export default function LoginPage() {
 
     try {
       const response = await loginUser({ email, password });
-      localStorage.setItem('token', response.token);
-      // Redirect to dashboard after successful login
+      login(response.token);
+
+      // Check if there's a redirect path stored
+      const redirectPath = localStorage.getItem('redirectAfterLogin');
+      localStorage.removeItem('redirectAfterLogin');
+
+      // Redirect to the intended page or default to home
+      router.push(redirectPath || '/home');
     } catch (error) {
       if (isAxiosError(error)) {
         setError(
