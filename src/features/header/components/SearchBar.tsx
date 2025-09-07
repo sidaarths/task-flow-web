@@ -1,5 +1,5 @@
 'use client';
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { IconSearch } from '@tabler/icons-react';
 
@@ -27,30 +27,48 @@ export default function SearchBar({ placeholder }: SearchBarProps) {
     return 'Search...';
   };
 
+  // Function to perform the search
+  const performSearch = useCallback(
+    (query: string) => {
+      const trimmedQuery = query.trim();
+
+      if (trimmedQuery) {
+        // If we're on a board page, search within that board
+        if (pathname.includes('/board/')) {
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.set('query', trimmedQuery);
+          router.push(currentUrl.pathname + currentUrl.search);
+        } else {
+          // Otherwise, search on the home page
+          router.push(`/home?query=${encodeURIComponent(trimmedQuery)}`);
+        }
+      } else {
+        // Clear search
+        if (pathname.includes('/board/')) {
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.delete('query');
+          router.push(currentUrl.pathname + currentUrl.search);
+        } else {
+          router.push('/home');
+        }
+      }
+    },
+    [pathname, router]
+  );
+
+  // Auto-search with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, performSearch]);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim();
-
-    if (query) {
-      // If we're on a board page, search within that board
-      if (pathname.includes('/board/')) {
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('query', query);
-        router.push(currentUrl.pathname + currentUrl.search);
-      } else {
-        // Otherwise, search on the home page
-        router.push(`/home?query=${encodeURIComponent(query)}`);
-      }
-    } else {
-      // Clear search
-      if (pathname.includes('/board/')) {
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.delete('query');
-        router.push(currentUrl.pathname + currentUrl.search);
-      } else {
-        router.push('/home');
-      }
-    }
+    // Immediately perform search on form submit (Enter key)
+    performSearch(searchQuery);
   };
 
   return (

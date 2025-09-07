@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Board,
   boardsApi,
@@ -12,9 +13,18 @@ import BoardCard from './BoardCard';
 import CreateBoardModal from './CreateBoardModal';
 import EditBoardModal from './EditBoardModal';
 import DeleteBoardModal from './DeleteBoardModal';
-import { IconAlertTriangle, IconLoader, IconPlus } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconLoader2,
+  IconPlus,
+  IconSearch,
+} from '@tabler/icons-react';
 
 export default function HomePage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchQuery = searchParams.get('query') || '';
+
   const [boards, setBoards] = useState<Board[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +34,20 @@ export default function HomePage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
+
+  // Filter boards based on search query
+  const filteredBoards = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return boards;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return boards.filter(
+      (board) =>
+        board.title.toLowerCase().includes(query) ||
+        board.description.toLowerCase().includes(query)
+    );
+  }, [boards, searchQuery]);
 
   useEffect(() => {
     loadInitialData();
@@ -95,7 +119,7 @@ export default function HomePage() {
       <div className="container mx-auto px-6 py-8">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex items-center space-x-3 text-gray-600 dark:text-gray-400">
-            <IconLoader className="w-6 h-6 animate-spin" />
+            <IconLoader2 className="w-6 h-6 animate-spin" />
             <span className="text-sm font-medium">Loading your boards...</span>
           </div>
         </div>
@@ -135,10 +159,14 @@ export default function HomePage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Your Boards
+            {searchQuery
+              ? `Search Results for "${searchQuery}"`
+              : 'Your Boards'}
           </h1>
           <p className="text-gray-600/80 dark:text-gray-400/80">
-            Manage your projects and collaborate with your team
+            {searchQuery
+              ? `Found ${filteredBoards.length} board${filteredBoards.length !== 1 ? 's' : ''} matching your search`
+              : 'Manage your projects and collaborate with your team'}
           </p>
         </div>
         <button
@@ -182,9 +210,37 @@ export default function HomePage() {
             <span>Create Your First Board</span>
           </button>
         </div>
+      ) : filteredBoards.length === 0 && searchQuery ? (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
+            <IconSearch className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No boards found
+          </h3>
+          <p className="text-gray-600/80 dark:text-gray-400/80 mb-6 max-w-md mx-auto">
+            No boards match your search for &quot;{searchQuery}&quot;. Try a
+            different search term or create a new board.
+          </p>
+          <div className="flex items-center justify-center space-x-4">
+            <button
+              onClick={() => router.push('/home')}
+              className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+            >
+              <span>Clear Search</span>
+            </button>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200"
+            >
+              <IconPlus className="w-4 h-4" />
+              <span>Create Board</span>
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {boards.map((board) => (
+          {filteredBoards.map((board) => (
             <BoardCard
               key={board._id}
               board={board}

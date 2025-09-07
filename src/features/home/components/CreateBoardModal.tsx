@@ -136,9 +136,7 @@ export default function CreateBoardModal({
               disabled={isSubmitting || !formData.title.trim()}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              {isSubmitting && (
-                <IconLoader2 className="w-4 h-4 animate-spin" />
-              )}
+              {isSubmitting && <IconLoader2 className="w-4 h-4 animate-spin" />}
               <span>{isSubmitting ? 'Creating...' : 'Create Board'}</span>
             </button>
           </div>

@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 import { Board } from '../api/boards';
-import { IconAlertTriangle, IconLoader2, IconTrash, IconX } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconLoader2,
+  IconTrash,
+  IconX,
+} from '@tabler/icons-react';
 
 interface DeleteBoardModalProps {
   isOpen: boolean;
@@ -74,7 +79,8 @@ export default function DeleteBoardModal({
 
           <div className="space-y-3">
             <p className="text-gray-900 dark:text-white">
-              Are you sure you want to delete <strong>"{board.title}"</strong>?
+              Are you sure you want to delete{' '}
+              <strong>&quot;{board.title}&quot;</strong>?
             </p>
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
               <div className="flex items-start space-x-3">
@@ -106,9 +112,7 @@ export default function DeleteBoardModal({
               disabled={isDeleting}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              {isDeleting && (
-                <IconLoader2 className="w-4 h-4 animate-spin" />
-              )}
+              {isDeleting && <IconLoader2 className="w-4 h-4 animate-spin" />}
               <span>{isDeleting ? 'Deleting...' : 'Delete Board'}</span>
             </button>
           </div>
