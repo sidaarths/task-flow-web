@@ -39,7 +39,7 @@ export default function BoardCard({
         </div>
 
         {isOwner && (
-          <div className="flex space-x-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="flex space-x-2 ml-4">
             <button
               onClick={() => onEdit(board)}
               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200"
