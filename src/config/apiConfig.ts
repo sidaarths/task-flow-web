@@ -10,4 +10,6 @@ export const API_ROUTES = {
   USER_PROFILE: '/users/me',
   BOARDS: '/boards',
   USERS_SEARCH: '/users/search',
+  TASKS: '/tasks',
+  LISTS: '/lists',
 };
