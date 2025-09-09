@@ -1,9 +1,10 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserProfile, User } from '../api/user';
+import { getUserProfile } from '../api/user';
 import { useAuth } from '@/context/AuthContext';
 import { IconLogout2 } from '@tabler/icons-react';
+import type { User } from '@/types';
 
 export default function UserAvatar() {
   const [user, setUser] = useState<User | null>(null);
