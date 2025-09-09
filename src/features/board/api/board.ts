@@ -17,7 +17,7 @@ export const boardApi = {
   async createList(boardId: string, data: CreateListRequest): Promise<List> {
     try {
       const response = await httpClient.post(
-        `${API_ROUTES.BOARDS}/${boardId}/lists`,
+        `${API_ROUTES.BOARDS}/${boardId}${API_ROUTES.LISTS}`,
         data
       );
       return response.data;
