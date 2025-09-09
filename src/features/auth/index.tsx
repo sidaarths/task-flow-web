@@ -1,4 +1,4 @@
-import RegisterPage from './components/registerPage';
+import RegisterPage from './components/RegisterPage';
 export { RegisterPage };
-import LoginPage from './components/loginPage';
+import LoginPage from './components/LoginPage';
 export { LoginPage };

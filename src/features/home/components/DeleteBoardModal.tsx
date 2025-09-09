@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Board } from '../api/boards';
+import { Board } from '@/types';
 import {
   IconAlertTriangle,
   IconLoader2,

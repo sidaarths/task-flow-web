@@ -1,7 +1,8 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { IconEdit, IconTrash, IconUsers } from '@tabler/icons-react';
-import { Board } from '../api/boards';
+import type { Board } from '@/types';
 
 interface BoardCardProps {
   board: Board;
@@ -16,6 +17,7 @@ export default function BoardCard({
   onDelete,
   currentUserId,
 }: BoardCardProps) {
+  const router = useRouter();
   const isOwner = board.createdBy === currentUserId;
 
   const formatDate = (dateString: string) => {
@@ -26,8 +28,25 @@ export default function BoardCard({
     });
   };
 
+  const handleCardClick = () => {
+    router.push(`/boards/${board._id}`);
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(board);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(board);
+  };
+
   return (
-    <div className="group bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-700/60 p-6 transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:border-gray-300/60 dark:hover:border-gray-600/60">
+    <div
+      onClick={handleCardClick}
+      className="group bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-700/60 p-6 transition-all duration-200 hover:shadow-md hover:scale-[1.02] hover:border-gray-300/60 dark:hover:border-gray-600/60 cursor-pointer"
+    >
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 truncate">
@@ -41,14 +60,14 @@ export default function BoardCard({
         {isOwner && (
           <div className="flex space-x-2 ml-4">
             <button
-              onClick={() => onEdit(board)}
+              onClick={handleEditClick}
               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200"
               title="Edit board"
             >
               <IconEdit className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onDelete(board)}
+              onClick={handleDeleteClick}
               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all duration-200"
               title="Delete board"
             >
