@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { CreateBoardRequest } from '../api/boards';
 import { IconLoader2, IconX } from '@tabler/icons-react';
+import type { CreateBoardRequest } from '@/types';
 
 interface CreateBoardModalProps {
   isOpen: boolean;
