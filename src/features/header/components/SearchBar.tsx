@@ -64,7 +64,6 @@ export default function SearchBar({ placeholder }: SearchBarProps) {
 
   useEffect(() => {
     performSearch(searchQuery);
-    return;
   }, [searchQuery, performSearch]);
 
   const handleSubmit = (e: FormEvent) => {

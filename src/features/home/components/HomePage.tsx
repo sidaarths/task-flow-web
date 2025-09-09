@@ -20,6 +20,7 @@ import {
   IconPlus,
   IconSearch,
 } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const searchParams = useSearchParams();
@@ -34,6 +35,8 @@ export default function HomePage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
+
+  const router = useRouter();
 
   // Filter boards based on search query
   const filteredBoards = useMemo(() => {
@@ -224,7 +227,7 @@ export default function HomePage() {
           </p>
           <div className="flex items-center justify-center space-x-4">
             <button
-              // onClick={() => router.push('/home')}
+              onClick={() => router.replace('/home')}
               className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
             >
               <span>Clear Search</span>
