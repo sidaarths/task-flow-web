@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Board, UpdateBoardRequest } from '../api/boards';
+import { Board, UpdateBoardRequest } from '@/types';
 import { IconLoader2, IconX } from '@tabler/icons-react';
 
 interface EditBoardModalProps {
