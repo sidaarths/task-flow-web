@@ -1,27 +1,6 @@
-'use client';
-
 import { API_ROUTES } from '@/config/apiConfig';
 import httpClient from '@/config/httpClient';
-
-export interface Board {
-  _id: string;
-  title: string;
-  description: string;
-  createdBy: string;
-  members: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateBoardRequest {
-  title: string;
-  description: string;
-}
-
-export interface UpdateBoardRequest {
-  title?: string;
-  description?: string;
-}
+import type { Board, CreateBoardRequest, UpdateBoardRequest } from '@/types';
 
 export const boardsApi = {
   async getBoards(): Promise<Board[]> {

@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import {
+import { useSearchParams } from 'next/navigation';
+import { boardsApi } from '../api/boards';
+import type {
   Board,
-  boardsApi,
   CreateBoardRequest,
   UpdateBoardRequest,
-} from '../api/boards';
-import { getUserProfile, User } from '@/features/header/api/user';
+  User,
+} from '@/types';
+import { getUserProfile } from '@/features/header/api/user';
 import BoardCard from './BoardCard';
 import CreateBoardModal from './CreateBoardModal';
 import EditBoardModal from './EditBoardModal';
@@ -22,7 +23,6 @@ import {
 
 export default function HomePage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const searchQuery = searchParams.get('query') || '';
 
   const [boards, setBoards] = useState<Board[]>([]);
@@ -224,7 +224,7 @@ export default function HomePage() {
           </p>
           <div className="flex items-center justify-center space-x-4">
             <button
-              onClick={() => router.push('/home')}
+              // onClick={() => router.push('/home')}
               className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
             >
               <span>Clear Search</span>

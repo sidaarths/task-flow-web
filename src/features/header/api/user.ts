@@ -1,12 +1,6 @@
 import { API_ROUTES } from '@/config/apiConfig';
 import httpClient from '@/config/httpClient';
-
-export interface User {
-  _id: string;
-  email: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { User } from '@/types';
 
 export const getUserProfile = async (): Promise<User> => {
   try {
