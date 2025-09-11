@@ -40,10 +40,8 @@ export default function BoardMembersModal({
         setLoading(true);
         setError('');
         
-        // Get member details using the proper API
         const memberDetails = await boardApi.getBoardMembers(board.members);
-        
-        // Add additional flags for each member
+        // Add additional flags
         const membersWithDetails: MemberWithDetails[] = memberDetails.map(member => ({
           ...member,
           isCreator: member._id === board.createdBy,
@@ -69,7 +67,6 @@ export default function BoardMembersModal({
       setRemovingMemberId(userId);
       await boardApi.removeMemberFromBoard(board._id, userId);
       
-      // Update local state
       setMembers(prev => prev.filter(member => member._id !== userId));
       
       if (onMemberRemoved) {

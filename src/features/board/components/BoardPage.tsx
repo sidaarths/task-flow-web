@@ -170,7 +170,6 @@ export default function BoardPage() {
     }
   };
 
-  // Handler for adding members locally without refetching
   const handleMembersAdded = (newMemberIds: string[]) => {
     if (boardData) {
       setBoardData({
@@ -183,7 +182,6 @@ export default function BoardPage() {
     }
   };
 
-  // Handler for removing a member locally without refetching
   const handleMemberRemoved = (removedUserId: string) => {
     if (boardData) {
       setBoardData({
@@ -196,14 +194,12 @@ export default function BoardPage() {
     }
   };
 
-  // Filter tasks based on search query, but always show all lists
+  // Filter tasks based on search query
   const { sortedLists, getTasksForList, getTotalTasksForList } = useMemo(() => {
     const getTasksForListFn = (listId: string): Task[] => {
       if (!boardData?.tasks) return [];
-
+      
       let tasks = boardData.tasks.filter((task) => task.listId === listId);
-
-      // Filter tasks based on search query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
         tasks = tasks.filter(

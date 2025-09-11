@@ -63,15 +63,13 @@ export default function InviteUsersModal({
 
     setIsInviting(true);
     setShowResults(true);
-    
-    // Initialize results with pending status
+  
     const initialResults: InviteResult[] = selectedUsers.map(user => ({
       user,
       status: 'pending'
     }));
     setInviteResults(initialResults);
 
-    // Process invites one by one to show progress
     const results: InviteResult[] = [];
     
     for (let i = 0; i < selectedUsers.length; i++) {
@@ -86,7 +84,6 @@ export default function InviteUsersModal({
       
       results.push(inviteResult);
       
-      // Update results in real-time
       setInviteResults(prev => 
         prev.map((item, index) => 
           index === i ? inviteResult : item
@@ -96,7 +93,7 @@ export default function InviteUsersModal({
 
     setIsInviting(false);
     
-    // Check if any invites were successful and call onMembersAdded with successful user IDs
+    // Call onMembersAdded with successful user IDs
     const successfulUserIds = results
       .filter(result => result.status === 'success')
       .map(result => result.user._id);
@@ -143,8 +140,8 @@ export default function InviteUsersModal({
       const failedItem = failedResults.find(f => f.user._id === item.user._id);
       return failedItem ? item : item;
     });
-    
-    // Check if we have any successful invites and call onMembersAdded
+
+    // Call onMembersAdded with successful user IDs
     const successfulUserIds = currentResults
       .filter(result => result.status === 'success')
       .map(result => result.user._id);
