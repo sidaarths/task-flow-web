@@ -1,9 +1,13 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { getUserProfile } from '@/api/user';
+import type { User } from '@/types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  user: User | null;
+  userLoading: boolean;
   login: (token: string) => void;
   logout: () => void;
 }
@@ -23,26 +27,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [userLoading, setUserLoading] = useState(false);
+
+  const fetchUser = async () => {
+    try {
+      setUserLoading(true);
+      const userData = await getUserProfile();
+      setUser(userData);
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+      setUser(null);
+    } finally {
+      setUserLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check if user is authenticated on mount
     const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token);
+    const authenticated = !!token;
+    setIsAuthenticated(authenticated);
     setIsLoading(false);
+
+    // Fetch user profile if authenticated
+    if (authenticated) {
+      fetchUser();
+    }
   }, []);
 
   const login = (token: string) => {
     localStorage.setItem('token', token);
     setIsAuthenticated(true);
+    fetchUser();
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      isLoading, 
+      user, 
+      userLoading, 
+      login, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

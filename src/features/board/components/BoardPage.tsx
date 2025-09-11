@@ -8,18 +8,23 @@ import {
   IconUsers,
   IconAlertTriangle,
   IconClipboardText,
+  IconUserPlus,
 } from '@tabler/icons-react';
 import { boardApi } from '../api/board';
 import type { BoardWithListsAndTasks, List, Task } from '@/types';
 import { listApi } from '@/features/list/api/list';
 import { taskApi } from '@/features/task/api/task';
+import { useAuth } from '@/context/AuthContext';
 import CreateListModal from './CreateListModal';
+import InviteUsersModal from './InviteUsersModal';
+import BoardMembersModal from './BoardMembersModal';
 import ListCard, { EditListModal, DeleteListModal } from '@/features/list';
 
 export default function BoardPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user: currentUser } = useAuth();
   const boardId = params.boardId as string;
   const searchQuery = searchParams.get('query') || '';
 
@@ -33,6 +38,8 @@ export default function BoardPage() {
   const [showCreateListModal, setShowCreateListModal] = useState(false);
   const [showEditListModal, setShowEditListModal] = useState(false);
   const [showDeleteListModal, setShowDeleteListModal] = useState(false);
+  const [showInviteUsersModal, setShowInviteUsersModal] = useState(false);
+  const [showBoardMembersModal, setShowBoardMembersModal] = useState(false);
   const [selectedList, setSelectedList] = useState<List | null>(null);
 
   // Loading states
@@ -146,13 +153,12 @@ export default function BoardPage() {
 
   const handleEditTask = (task: Task) => {
     // TODO: Implement task editing modal
-    console.log('Edit task:', task);
+    console.log('TODO: Edit task:', task);
   };
 
   const handleDeleteTask = async (task: Task) => {
     try {
       await taskApi.deleteTask(task._id);
-
       if (boardData) {
         setBoardData({
           ...boardData,
@@ -161,6 +167,32 @@ export default function BoardPage() {
       }
     } catch (error) {
       console.error('Failed to delete task:', error);
+    }
+  };
+
+  // Handler for adding members locally without refetching
+  const handleMembersAdded = (newMemberIds: string[]) => {
+    if (boardData) {
+      setBoardData({
+        ...boardData,
+        board: {
+          ...boardData.board,
+          members: [...boardData.board.members, ...newMemberIds],
+        },
+      });
+    }
+  };
+
+  // Handler for removing a member locally without refetching
+  const handleMemberRemoved = (removedUserId: string) => {
+    if (boardData) {
+      setBoardData({
+        ...boardData,
+        board: {
+          ...boardData.board,
+          members: boardData.board.members.filter(id => id !== removedUserId),
+        },
+      });
     }
   };
 
@@ -244,6 +276,8 @@ export default function BoardPage() {
 
   if (!boardData) return null;
 
+  const isOwner = currentUser && boardData.board.createdBy === currentUser._id;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -271,13 +305,27 @@ export default function BoardPage() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600/80 dark:text-gray-400/80">
+              <button
+                onClick={() => setShowBoardMembersModal(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
+                title="View board members"
+              >
                 <IconUsers className="w-4 h-4" />
                 <span>
                   {boardData.board.members.length} member
                   {boardData.board.members.length !== 1 ? 's' : ''}
                 </span>
-              </div>
+              </button>
+
+              {isOwner && (
+                <button
+                  onClick={() => setShowInviteUsersModal(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
+                >
+                  <IconUserPlus className="w-4 h-4" />
+                  <span>Invite Users</span>
+                </button>
+              )}
 
               <button
                 onClick={() => setShowCreateListModal(true)}
@@ -366,6 +414,23 @@ export default function BoardPage() {
         onConfirm={handleConfirmDeleteList}
         list={selectedList}
         isLoading={isDeletingList}
+      />
+
+      {isOwner && (
+        <InviteUsersModal
+          isOpen={showInviteUsersModal}
+          onClose={() => setShowInviteUsersModal(false)}
+          boardId={boardId}
+          existingMemberIds={boardData.board.members}
+          onMembersAdded={handleMembersAdded}
+        />
+      )}
+
+      <BoardMembersModal
+        isOpen={showBoardMembersModal}
+        onClose={() => setShowBoardMembersModal(false)}
+        board={boardData.board}
+        onMemberRemoved={handleMemberRemoved}
       />
     </div>
   );

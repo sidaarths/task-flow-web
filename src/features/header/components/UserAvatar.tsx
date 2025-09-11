@@ -1,45 +1,14 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserProfile } from '../api/user';
 import { useAuth } from '@/context/AuthContext';
 import { IconLogout2 } from '@tabler/icons-react';
-import type { User } from '@/types';
 
 export default function UserAvatar() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { logout, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { logout, isAuthenticated, isLoading: authLoading, user, userLoading } = useAuth();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      // Only fetch user data if authenticated
-      if (!isAuthenticated) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const userData = await getUserProfile();
-        setUser(userData);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch user profile:', err);
-        setError('Failed to load user profile');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Don't fetch if auth is still loading
-    if (!authLoading) {
-      fetchUser();
-    }
-  }, [isAuthenticated, authLoading]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -64,7 +33,7 @@ export default function UserAvatar() {
   };
 
   // Show loading only if auth is loading or user data is loading for authenticated users
-  if (authLoading || (isAuthenticated && loading)) {
+  if (authLoading || (isAuthenticated && userLoading)) {
     return (
       <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full animate-pulse"></div>
     );
@@ -75,7 +44,7 @@ export default function UserAvatar() {
     return null; // or return a login button placeholder
   }
 
-  if (error || !user) {
+  if (!user) {
     return (
       <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
         <span className="text-xs text-gray-500 dark:text-gray-400">?</span>

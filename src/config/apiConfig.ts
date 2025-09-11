@@ -9,7 +9,7 @@ export const API_ROUTES = {
   REGISTER: '/auth/register',
   USER_PROFILE: '/users/me',
   BOARDS: '/boards',
-  USERS_SEARCH: '/users/search',
+  USERS: '/users',
   TASKS: '/tasks',
   LISTS: '/lists',
 };
