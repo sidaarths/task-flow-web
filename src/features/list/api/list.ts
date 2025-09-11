@@ -5,7 +5,10 @@ import { API_ROUTES } from '@/config/apiConfig';
 export const listApi = {
   async updateList(listId: string, data: UpdateListRequest): Promise<List> {
     try {
-      const response = await httpClient.put(`${API_ROUTES.LISTS}/${listId}`, data);
+      const response = await httpClient.put(
+        `${API_ROUTES.LISTS}/${listId}`,
+        data
+      );
       return response.data;
     } catch {
       throw new Error('Failed to update list');
@@ -22,7 +25,10 @@ export const listApi = {
 
   async createTask(listId: string, data: CreateTaskRequest): Promise<Task> {
     try {
-      const response = await httpClient.post(`${API_ROUTES.LISTS}/${listId}${API_ROUTES.TASKS}`, data);
+      const response = await httpClient.post(
+        `${API_ROUTES.LISTS}/${listId}${API_ROUTES.TASKS}`,
+        data
+      );
       return response.data;
     } catch {
       throw new Error('Failed to create task');

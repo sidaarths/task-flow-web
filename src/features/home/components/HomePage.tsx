@@ -3,13 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { boardsApi } from '../api/boards';
-import type {
-  Board,
-  CreateBoardRequest,
-  UpdateBoardRequest,
-  User,
-} from '@/types';
-import { getUserProfile } from '@/features/header/api/user';
+import type { Board, CreateBoardRequest, UpdateBoardRequest } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import BoardCard from './BoardCard';
 import CreateBoardModal from './CreateBoardModal';
 import EditBoardModal from './EditBoardModal';
@@ -25,9 +20,9 @@ import { useRouter } from 'next/navigation';
 export default function HomePage() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('query') || '';
+  const { user: currentUser } = useAuth();
 
   const [boards, setBoards] = useState<Board[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -61,13 +56,8 @@ export default function HomePage() {
       setLoading(true);
       setError(null);
 
-      const [boardsData, userData] = await Promise.all([
-        boardsApi.getBoards(),
-        getUserProfile(),
-      ]);
-
+      const boardsData = await boardsApi.getBoards();
       setBoards(boardsData);
-      setCurrentUser(userData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {

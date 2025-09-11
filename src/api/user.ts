@@ -10,3 +10,12 @@ export const getUserProfile = async (): Promise<User> => {
     throw new Error('Failed to fetch user profile');
   }
 };
+
+export const getUserById = async (userId: string): Promise<User> => {
+  try {
+    const response = await httpClient.get(`${API_ROUTES.USERS}/${userId}`);
+    return response.data;
+  } catch {
+    throw new Error('Failed to fetch user details');
+  }
+};

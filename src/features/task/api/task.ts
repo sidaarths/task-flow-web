@@ -5,7 +5,10 @@ import { API_ROUTES } from '@/config/apiConfig';
 export const taskApi = {
   async updateTask(taskId: string, data: UpdateTaskRequest): Promise<Task> {
     try {
-      const response = await httpClient.put(`${API_ROUTES.TASKS}/${taskId}`, data);
+      const response = await httpClient.put(
+        `${API_ROUTES.TASKS}/${taskId}`,
+        data
+      );
       return response.data;
     } catch {
       throw new Error('Failed to update task');
