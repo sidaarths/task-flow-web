@@ -188,7 +188,7 @@ export default function BoardPage() {
         ...boardData,
         board: {
           ...boardData.board,
-          members: boardData.board.members.filter(id => id !== removedUserId),
+          members: boardData.board.members.filter((id) => id !== removedUserId),
         },
       });
     }
@@ -198,7 +198,7 @@ export default function BoardPage() {
   const { sortedLists, getTasksForList, getTotalTasksForList } = useMemo(() => {
     const getTasksForListFn = (listId: string): Task[] => {
       if (!boardData?.tasks) return [];
-      
+
       let tasks = boardData.tasks.filter((task) => task.listId === listId);
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();

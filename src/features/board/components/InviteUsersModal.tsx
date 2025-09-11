@@ -1,13 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { IconX, IconUserPlus, IconCheck, IconAlertCircle, IconLoader, IconRefresh } from '@tabler/icons-react';
+import {
+  IconX,
+  IconUserPlus,
+  IconCheck,
+  IconAlertCircle,
+  IconLoader,
+  IconRefresh,
+} from '@tabler/icons-react';
 import { User } from '@/types';
 import UserSearch from '@/components/UserSearch';
 import httpClient from '@/config/httpClient';
 import { API_ROUTES } from '@/config/apiConfig';
 import { isAxiosError } from 'axios';
-import { on } from 'events';
 
 interface InviteUsersModalProps {
   isOpen: boolean;
@@ -43,9 +49,13 @@ export default function InviteUsersModal({
     onClose();
   };
 
-  const inviteUserToBoard = async (user: User): Promise<{ success: boolean; error?: string }> => {
+  const inviteUserToBoard = async (
+    user: User
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      await httpClient.post(`${API_ROUTES.BOARDS}/${boardId}/users/${user._id}`);
+      await httpClient.post(
+        `${API_ROUTES.BOARDS}/${boardId}/users/${user._id}`
+      );
       return { success: true };
     } catch (error: unknown) {
       let errorMessage = 'Failed to invite user';
@@ -63,55 +73,55 @@ export default function InviteUsersModal({
 
     setIsInviting(true);
     setShowResults(true);
-  
-    const initialResults: InviteResult[] = selectedUsers.map(user => ({
+
+    const initialResults: InviteResult[] = selectedUsers.map((user) => ({
       user,
-      status: 'pending'
+      status: 'pending',
     }));
     setInviteResults(initialResults);
 
     const results: InviteResult[] = [];
-    
+
     for (let i = 0; i < selectedUsers.length; i++) {
       const user = selectedUsers[i];
       const result = await inviteUserToBoard(user);
-      
+
       const inviteResult: InviteResult = {
         user,
         status: result.success ? 'success' : 'error',
-        error: result.error
+        error: result.error,
       };
-      
+
       results.push(inviteResult);
-      
-      setInviteResults(prev => 
-        prev.map((item, index) => 
-          index === i ? inviteResult : item
-        )
+
+      setInviteResults((prev) =>
+        prev.map((item, index) => (index === i ? inviteResult : item))
       );
     }
 
     setIsInviting(false);
-    
+
     // Call onMembersAdded with successful user IDs
     const successfulUserIds = results
-      .filter(result => result.status === 'success')
-      .map(result => result.user._id);
-    
+      .filter((result) => result.status === 'success')
+      .map((result) => result.user._id);
+
     if (successfulUserIds.length > 0 && onMembersAdded) {
       onMembersAdded(successfulUserIds);
     }
   };
 
   const handleRetryFailedInvites = async () => {
-    const failedResults = inviteResults.filter(result => result.status === 'error');
+    const failedResults = inviteResults.filter(
+      (result) => result.status === 'error'
+    );
     if (failedResults.length === 0) return;
 
     setIsInviting(true);
-    
+
     // Set failed invites back to pending
-    setInviteResults(prev => 
-      prev.map(result => 
+    setInviteResults((prev) =>
+      prev.map((result) =>
         result.status === 'error' ? { ...result, status: 'pending' } : result
       )
     );
@@ -119,14 +129,14 @@ export default function InviteUsersModal({
     // Retry failed invites
     for (const failedResult of failedResults) {
       const result = await inviteUserToBoard(failedResult.user);
-      
-      setInviteResults(prev => 
-        prev.map(item => 
-          item.user._id === failedResult.user._id 
+
+      setInviteResults((prev) =>
+        prev.map((item) =>
+          item.user._id === failedResult.user._id
             ? {
                 ...item,
                 status: result.success ? 'success' : 'error',
-                error: result.error
+                error: result.error,
               }
             : item
         )
@@ -134,18 +144,20 @@ export default function InviteUsersModal({
     }
 
     setIsInviting(false);
-    
+
     // Get current state after all retries are complete
-    const currentResults = inviteResults.map(item => {
-      const failedItem = failedResults.find(f => f.user._id === item.user._id);
+    const currentResults = inviteResults.map((item) => {
+      const failedItem = failedResults.find(
+        (f) => f.user._id === item.user._id
+      );
       return failedItem ? item : item;
     });
 
     // Call onMembersAdded with successful user IDs
     const successfulUserIds = currentResults
-      .filter(result => result.status === 'success')
-      .map(result => result.user._id);
-    
+      .filter((result) => result.status === 'success')
+      .map((result) => result.user._id);
+
     if (successfulUserIds.length > 0 && onMembersAdded) {
       onMembersAdded(successfulUserIds);
     }
@@ -173,9 +185,13 @@ export default function InviteUsersModal({
     }
   };
 
-  const hasFailedInvites = inviteResults.some(result => result.status === 'error');
+  const hasFailedInvites = inviteResults.some(
+    (result) => result.status === 'error'
+  );
   const allCompleted = inviteResults.length > 0 && !isInviting;
-  const successCount = inviteResults.filter(result => result.status === 'success').length;
+  const successCount = inviteResults.filter(
+    (result) => result.status === 'success'
+  ).length;
 
   if (!isOpen) return null;
 
@@ -226,7 +242,9 @@ export default function InviteUsersModal({
               {selectedUsers.length > 0 && (
                 <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
                   <p className="text-sm text-blue-800 dark:text-blue-300">
-                    <strong>{selectedUsers.length}</strong> user{selectedUsers.length !== 1 ? 's' : ''} selected for invitation
+                    <strong>{selectedUsers.length}</strong> user
+                    {selectedUsers.length !== 1 ? 's' : ''} selected for
+                    invitation
                   </p>
                 </div>
               )}
@@ -245,7 +263,10 @@ export default function InviteUsersModal({
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md transition-all duration-200 flex items-center space-x-2"
                 >
                   <IconUserPlus className="w-4 h-4" />
-                  <span>Invite {selectedUsers.length} User{selectedUsers.length !== 1 ? 's' : ''}</span>
+                  <span>
+                    Invite {selectedUsers.length} User
+                    {selectedUsers.length !== 1 ? 's' : ''}
+                  </span>
                 </button>
               </div>
             </>
@@ -256,7 +277,7 @@ export default function InviteUsersModal({
                 <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Invitation Results
                 </div>
-                
+
                 {inviteResults.map((result) => (
                   <div
                     key={result.user._id}
@@ -286,7 +307,9 @@ export default function InviteUsersModal({
               {allCompleted && (
                 <div className="mb-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
                   <p className="text-sm text-green-800 dark:text-green-300">
-                    <strong>{successCount}</strong> out of <strong>{inviteResults.length}</strong> users invited successfully
+                    <strong>{successCount}</strong> out of{' '}
+                    <strong>{inviteResults.length}</strong> users invited
+                    successfully
                   </p>
                 </div>
               )}

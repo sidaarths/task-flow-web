@@ -1,7 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { IconChevronDown, IconX, IconCheck, IconSearch, IconLoader } from '@tabler/icons-react';
+import {
+  IconChevronDown,
+  IconX,
+  IconCheck,
+  IconSearch,
+  IconLoader,
+} from '@tabler/icons-react';
 import { User } from '@/types';
 import httpClient from '@/config/httpClient';
 import { API_ROUTES } from '@/config/apiConfig';
@@ -17,48 +23,54 @@ interface UserSearchProps {
 export default function UserSearch({
   selectedUsers,
   onSelectionChange,
-  placeholder = "Search users by email...",
-  className = "",
-  excludeUserIds = []
+  placeholder = 'Search users by email...',
+  className = '',
+  excludeUserIds = [],
 }: UserSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Debounced search function
-  const searchUsers = useCallback(async (email: string) => {
-    if (!email.trim() || email.length < 2) {
-      setSearchResults([]);
-      return;
-    }
+  const searchUsers = useCallback(
+    async (email: string) => {
+      if (!email.trim() || email.length < 2) {
+        setSearchResults([]);
+        return;
+      }
 
-    try {
-      setIsLoading(true);
-      setError('');
-      
-      const response = await httpClient.get(`${API_ROUTES.USERS}?email=${encodeURIComponent(email)}`);
-      const users = response.data as User[];
-      
-      // Filter out already selected users and excluded users
-      const filteredUsers = users.filter(user => 
-        !selectedUsers.some(selected => selected._id === user._id) &&
-        !excludeUserIds.includes(user._id)
-      );
-      
-      setSearchResults(filteredUsers);
-    } catch (error) {
-      console.error('Failed to search users:', error);
-      setError('Failed to search users');
-      setSearchResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedUsers, excludeUserIds]);
+      try {
+        setIsLoading(true);
+        setError('');
+
+        const response = await httpClient.get(
+          `${API_ROUTES.USERS}?email=${encodeURIComponent(email)}`
+        );
+        const users = response.data as User[];
+
+        // Filter out already selected users and excluded users
+        const filteredUsers = users.filter(
+          (user) =>
+            !selectedUsers.some((selected) => selected._id === user._id) &&
+            !excludeUserIds.includes(user._id)
+        );
+
+        setSearchResults(filteredUsers);
+      } catch (error) {
+        console.error('Failed to search users:', error);
+        setError('Failed to search users');
+        setSearchResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [selectedUsers, excludeUserIds]
+  );
 
   // Debounce search
   useEffect(() => {
@@ -72,7 +84,10 @@ export default function UserSearch({
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -82,17 +97,21 @@ export default function UserSearch({
   }, []);
 
   const handleToggleUser = (user: User) => {
-    const isSelected = selectedUsers.some(selected => selected._id === user._id);
-    
+    const isSelected = selectedUsers.some(
+      (selected) => selected._id === user._id
+    );
+
     if (isSelected) {
-      onSelectionChange(selectedUsers.filter(selected => selected._id !== user._id));
+      onSelectionChange(
+        selectedUsers.filter((selected) => selected._id !== user._id)
+      );
     } else {
       onSelectionChange([...selectedUsers, user]);
     }
   };
 
   const handleRemoveUser = (userId: string) => {
-    onSelectionChange(selectedUsers.filter(user => user._id !== userId));
+    onSelectionChange(selectedUsers.filter((user) => user._id !== userId));
   };
 
   const handleInputFocus = () => {
@@ -148,7 +167,9 @@ export default function UserSearch({
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             type="button"
           >
-            <IconChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            <IconChevronDown
+              className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+            />
           </button>
         </div>
 
@@ -174,17 +195,22 @@ export default function UserSearch({
               </div>
             )}
 
-            {!isLoading && !error && searchTerm.length >= 2 && searchResults.length === 0 && (
-              <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                No users found for &quot;{searchTerm}&quot;
-              </div>
-            )}
+            {!isLoading &&
+              !error &&
+              searchTerm.length >= 2 &&
+              searchResults.length === 0 && (
+                <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                  No users found for &quot;{searchTerm}&quot;
+                </div>
+              )}
 
             {!isLoading && !error && searchResults.length > 0 && (
               <div className="py-1">
                 {searchResults.map((user) => {
-                  const isSelected = selectedUsers.some(selected => selected._id === user._id);
-                  
+                  const isSelected = selectedUsers.some(
+                    (selected) => selected._id === user._id
+                  );
+
                   return (
                     <button
                       key={user._id}

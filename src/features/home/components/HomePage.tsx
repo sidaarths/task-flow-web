@@ -3,11 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { boardsApi } from '../api/boards';
-import type {
-  Board,
-  CreateBoardRequest,
-  UpdateBoardRequest,
-} from '@/types';
+import type { Board, CreateBoardRequest, UpdateBoardRequest } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import BoardCard from './BoardCard';
 import CreateBoardModal from './CreateBoardModal';

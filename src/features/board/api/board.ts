@@ -1,6 +1,11 @@
 import { API_ROUTES } from '@/config/apiConfig';
 import httpClient from '@/config/httpClient';
-import type { List, BoardWithListsAndTasks, CreateListRequest, User } from '@/types';
+import type {
+  List,
+  BoardWithListsAndTasks,
+  CreateListRequest,
+  User,
+} from '@/types';
 import { getUserById } from '@/api/user';
 
 export const boardApi = {
@@ -37,7 +42,9 @@ export const boardApi = {
 
   async removeMemberFromBoard(boardId: string, userId: string): Promise<void> {
     try {
-      await httpClient.delete(`${API_ROUTES.BOARDS}/${boardId}/users/${userId}`);
+      await httpClient.delete(
+        `${API_ROUTES.BOARDS}/${boardId}/users/${userId}`
+      );
     } catch {
       throw new Error('Failed to remove member from board');
     }
@@ -46,7 +53,7 @@ export const boardApi = {
   async getBoardMembers(memberIds: string[]): Promise<User[]> {
     try {
       const members: User[] = [];
-      
+
       // Fetch users using the proper getUserById API
       for (const id of memberIds) {
         try {
@@ -56,7 +63,7 @@ export const boardApi = {
           console.warn(`Failed to fetch user ${id}:`, error);
         }
       }
-      
+
       return members;
     } catch {
       throw new Error('Failed to fetch board members');

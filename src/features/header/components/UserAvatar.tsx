@@ -6,7 +6,13 @@ import { IconLogout2 } from '@tabler/icons-react';
 
 export default function UserAvatar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { logout, isAuthenticated, isLoading: authLoading, user, userLoading } = useAuth();
+  const {
+    logout,
+    isAuthenticated,
+    isLoading: authLoading,
+    user,
+    userLoading,
+  } = useAuth();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 

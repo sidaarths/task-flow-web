@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { IconX, IconUsers, IconCrown, IconTrash, IconLoader, IconAlertCircle } from '@tabler/icons-react';
+import {
+  IconX,
+  IconUsers,
+  IconCrown,
+  IconTrash,
+  IconLoader,
+  IconAlertCircle,
+} from '@tabler/icons-react';
 import { User, Board } from '@/types';
 import { boardApi } from '../api/board';
 import { useAuth } from '@/context/AuthContext';
@@ -22,7 +29,7 @@ export default function BoardMembersModal({
   isOpen,
   onClose,
   board,
-  onMemberRemoved
+  onMemberRemoved,
 }: BoardMembersModalProps) {
   const [members, setMembers] = useState<MemberWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,19 +42,21 @@ export default function BoardMembersModal({
   useEffect(() => {
     const fetchMembers = async () => {
       if (!isOpen) return;
-      
+
       try {
         setLoading(true);
         setError('');
-        
+
         const memberDetails = await boardApi.getBoardMembers(board.members);
         // Add additional flags
-        const membersWithDetails: MemberWithDetails[] = memberDetails.map(member => ({
-          ...member,
-          isCreator: member._id === board.createdBy,
-          isCurrentUser: currentUser ? member._id === currentUser._id : false
-        }));
-        
+        const membersWithDetails: MemberWithDetails[] = memberDetails.map(
+          (member) => ({
+            ...member,
+            isCreator: member._id === board.createdBy,
+            isCurrentUser: currentUser ? member._id === currentUser._id : false,
+          })
+        );
+
         setMembers(membersWithDetails);
       } catch (error) {
         console.error('Failed to fetch board members:', error);
@@ -66,15 +75,17 @@ export default function BoardMembersModal({
     try {
       setRemovingMemberId(userId);
       await boardApi.removeMemberFromBoard(board._id, userId);
-      
-      setMembers(prev => prev.filter(member => member._id !== userId));
-      
+
+      setMembers((prev) => prev.filter((member) => member._id !== userId));
+
       if (onMemberRemoved) {
         onMemberRemoved(userId);
       }
     } catch (error) {
       console.error('Failed to remove member:', error);
-      setError(error instanceof Error ? error.message : 'Failed to remove member');
+      setError(
+        error instanceof Error ? error.message : 'Failed to remove member'
+      );
     } finally {
       setRemovingMemberId(null);
     }
@@ -118,7 +129,9 @@ export default function BoardMembersModal({
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <IconLoader className="w-6 h-6 animate-spin text-blue-600" />
-              <span className="ml-2 text-gray-600 dark:text-gray-400">Loading members...</span>
+              <span className="ml-2 text-gray-600 dark:text-gray-400">
+                Loading members...
+              </span>
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-8 text-red-600 dark:text-red-400">
