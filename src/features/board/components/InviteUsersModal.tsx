@@ -7,7 +7,6 @@ import {
   IconCheck,
   IconAlertCircle,
   IconLoader,
-  IconRefresh,
 } from '@tabler/icons-react';
 import { User } from '@/types';
 import UserSearch from '@/components/UserSearch';
@@ -111,58 +110,6 @@ export default function InviteUsersModal({
     }
   };
 
-  const handleRetryFailedInvites = async () => {
-    const failedResults = inviteResults.filter(
-      (result) => result.status === 'error'
-    );
-    if (failedResults.length === 0) return;
-
-    setIsInviting(true);
-
-    // Set failed invites back to pending
-    setInviteResults((prev) =>
-      prev.map((result) =>
-        result.status === 'error' ? { ...result, status: 'pending' } : result
-      )
-    );
-
-    // Retry failed invites
-    for (const failedResult of failedResults) {
-      const result = await inviteUserToBoard(failedResult.user);
-
-      setInviteResults((prev) =>
-        prev.map((item) =>
-          item.user._id === failedResult.user._id
-            ? {
-                ...item,
-                status: result.success ? 'success' : 'error',
-                error: result.error,
-              }
-            : item
-        )
-      );
-    }
-
-    setIsInviting(false);
-
-    // Get current state after all retries are complete
-    const currentResults = inviteResults.map((item) => {
-      const failedItem = failedResults.find(
-        (f) => f.user._id === item.user._id
-      );
-      return failedItem ? item : item;
-    });
-
-    // Call onMembersAdded with successful user IDs
-    const successfulUserIds = currentResults
-      .filter((result) => result.status === 'success')
-      .map((result) => result.user._id);
-
-    if (successfulUserIds.length > 0 && onMembersAdded) {
-      onMembersAdded(successfulUserIds);
-    }
-  };
-
   const getStatusIcon = (status: InviteResult['status']) => {
     switch (status) {
       case 'pending':
@@ -185,9 +132,6 @@ export default function InviteUsersModal({
     }
   };
 
-  const hasFailedInvites = inviteResults.some(
-    (result) => result.status === 'error'
-  );
   const allCompleted = inviteResults.length > 0 && !isInviting;
   const successCount = inviteResults.filter(
     (result) => result.status === 'success'
@@ -315,16 +259,7 @@ export default function InviteUsersModal({
               )}
 
               {/* Actions */}
-              <div className="flex justify-end space-x-3">
-                {hasFailedInvites && allCompleted && (
-                  <button
-                    onClick={handleRetryFailedInvites}
-                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
-                  >
-                    <IconRefresh className="w-4 h-4" />
-                    <span>Retry Failed</span>
-                  </button>
-                )}
+              <div className="flex justify-end">
                 <button
                   onClick={handleClose}
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 hover:shadow-md transition-all duration-200"
