@@ -93,7 +93,7 @@ export default function TaskCreateModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[98vh] overflow-visible">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200/60 dark:border-gray-600/60">
           <div>
