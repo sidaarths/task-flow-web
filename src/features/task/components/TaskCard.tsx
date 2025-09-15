@@ -2,18 +2,18 @@
 
 import { useState } from 'react';
 import {
-  IconDotsVertical,
-  IconEdit,
-  IconTrash,
   IconCalendar,
   IconUser,
+  IconEdit,
+  IconTrash,
 } from '@tabler/icons-react';
 import type { Task } from '@/types';
 
 interface TaskCardProps {
   task: Task;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (task: Task) => void;
+  onDelete: (task: Task) => void;
+  onOpenDetails: () => void;
   searchQuery?: string;
 }
 
@@ -21,9 +21,10 @@ export default function TaskCard({
   task,
   onEdit,
   onDelete,
+  onOpenDetails,
   searchQuery,
 }: TaskCardProps) {
-  const [showMenu, setShowMenu] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return null;
@@ -53,111 +54,117 @@ export default function TaskCard({
     );
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(task);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(task);
+  };
+
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
+  const isToday =
+    task.dueDate &&
+    new Date(task.dueDate).toDateString() === new Date().toDateString();
 
   return (
-    <div className="bg-white dark:bg-gray-700 rounded-md shadow-sm border border-gray-200/60 dark:border-gray-600/60 p-3 hover:shadow-md transition-all duration-200 group min-w-0 overflow-hidden">
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0 pr-2">
-          <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-tight break-words">
-            {highlightText(task.title, searchQuery)}
-          </h4>
+    <div
+      className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-600/60 p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 cursor-pointer group min-w-0 overflow-hidden relative"
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
+      {/* Action buttons - shown on hover */}
+      <div
+        className={`absolute top-2 right-2 flex items-center space-x-1 transition-all duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <button
+          onClick={handleEdit}
+          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200"
+          title="Edit task"
+        >
+          <IconEdit className="w-4 h-4" />
+        </button>
+        <button
+          onClick={handleDelete}
+          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all duration-200"
+          title="Delete task"
+        >
+          <IconTrash className="w-4 h-4" />
+        </button>
+      </div>
 
-          {task.description && (
-            <p className="text-xs text-gray-600/80 dark:text-gray-400/80 mt-1 line-clamp-2 leading-relaxed">
-              {highlightText(task.description, searchQuery)}
-            </p>
-          )}
+      <div className="space-y-3" onClick={onOpenDetails}>
+        {/* Title */}
+        <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-tight break-words pr-12">
+          {highlightText(task.title, searchQuery)}
+        </h4>
 
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center space-x-2">
-              {/* Labels */}
-              {task.labels.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {task.labels.slice(0, 2).map((label, index) => {
-                    const isHighlighted =
-                      searchQuery &&
-                      searchQuery.trim() &&
-                      label
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase().trim());
+        {/* Description Preview */}
+        {task.description && (
+          <p className="text-xs text-gray-600/80 dark:text-gray-400/80 line-clamp-2 leading-relaxed">
+            {highlightText(task.description, searchQuery)}
+          </p>
+        )}
 
-                    return (
-                      <span
-                        key={index}
-                        className={`px-2 py-0.5 text-xs rounded-full ${
-                          isHighlighted
-                            ? 'bg-yellow-200 dark:bg-yellow-800/50 text-yellow-900 dark:text-yellow-200 ring-2 ring-yellow-300 dark:ring-yellow-700'
-                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
-                        }`}
-                      >
-                        {highlightText(label, searchQuery)}
-                      </span>
-                    );
-                  })}
-                  {task.labels.length > 2 && (
-                    <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-full">
-                      +{task.labels.length - 2}
+        {/* Task Meta Information */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            {/* Labels */}
+            {task.labels.length > 0 && (
+              <div className="flex items-center space-x-1">
+                {task.labels.slice(0, 2).map((label, index) => {
+                  const isHighlighted =
+                    searchQuery &&
+                    searchQuery.trim() &&
+                    label
+                      .toLowerCase()
+                      .includes(searchQuery.toLowerCase().trim());
+
+                  return (
+                    <span
+                      key={index}
+                      className={`px-2 py-0.5 text-xs rounded-full transition-all duration-200 ${
+                        isHighlighted
+                          ? 'bg-yellow-200 dark:bg-yellow-800/50 text-yellow-900 dark:text-yellow-200 ring-2 ring-yellow-300 dark:ring-yellow-700'
+                          : 'bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                      }`}
+                    >
+                      {highlightText(label, searchQuery)}
                     </span>
-                  )}
-                </div>
-              )}
+                  );
+                })}
+                {task.labels.length > 2 && (
+                  <span className="px-2 py-0.5 text-xs bg-gray-500/10 text-gray-600 dark:text-gray-400 rounded-full">
+                    +{task.labels.length - 2}
+                  </span>
+                )}
+              </div>
+            )}
 
-              {/* Due Date */}
-              {task.dueDate && (
-                <div
-                  className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs ${
-                    isOverdue
-                      ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                      : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
-                  }`}
-                >
-                  <IconCalendar className="w-3 h-3" />
-                  <span>{formatDate(task.dueDate)}</span>
-                </div>
-              )}
-
-              {/* Assigned Users */}
-              {task.assignedTo.length > 0 && (
-                <div className="flex items-center space-x-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-full text-xs">
-                  <IconUser className="w-3 h-3" />
-                  <span>{task.assignedTo.length}</span>
-                </div>
-              )}
-            </div>
+            {/* Due Date */}
+            {task.dueDate && (
+              <div
+                className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs transition-all duration-200 ${
+                  isOverdue
+                    ? 'bg-red-500/10 text-red-700 dark:text-red-300'
+                    : isToday
+                      ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                      : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <IconCalendar className="w-3 h-3" />
+                <span>{formatDate(task.dueDate)}</span>
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="relative flex-shrink-0">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded opacity-0 group-hover:opacity-100 transition-all duration-200"
-          >
-            <IconDotsVertical className="w-3 h-3" />
-          </button>
-
-          {showMenu && (
-            <div className="absolute right-0 top-6 bg-white dark:bg-gray-600 rounded-md shadow-lg border border-gray-200/60 dark:border-gray-500/60 py-1 z-20 min-w-[100px]">
-              <button
-                onClick={() => {
-                  onEdit();
-                  setShowMenu(false);
-                }}
-                className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-500 flex items-center space-x-2"
-              >
-                <IconEdit className="w-3 h-3" />
-                <span>Edit</span>
-              </button>
-              <button
-                onClick={() => {
-                  onDelete();
-                  setShowMenu(false);
-                }}
-                className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-500 flex items-center space-x-2"
-              >
-                <IconTrash className="w-3 h-3" />
-                <span>Delete</span>
-              </button>
+          {/* Assigned Users Count */}
+          {task.assignedTo.length > 0 && (
+            <div className="flex items-center space-x-1 px-2 py-0.5 bg-gray-500/10 text-gray-600 dark:text-gray-400 rounded-full text-xs">
+              <IconUser className="w-3 h-3" />
+              <span>{task.assignedTo.length}</span>
             </div>
           )}
         </div>

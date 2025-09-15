@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Board, UpdateBoardRequest } from '@/types';
 import { IconLoader2, IconX } from '@tabler/icons-react';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface EditBoardModalProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export default function EditBoardModal({
       await onUpdate(board._id, formData);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update board');
+      setError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -93,7 +94,8 @@ export default function EditBoardModal({
                 htmlFor="edit-title"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                Title *
+                Title
+                <span className="required-asterisk">*</span>
               </label>
               <input
                 type="text"
@@ -127,7 +129,7 @@ export default function EditBoardModal({
                 }
                 rows={3}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 resize-none"
-                placeholder="Enter board description (optional)"
+                placeholder="Enter board description"
                 disabled={isSubmitting}
               />
             </div>
