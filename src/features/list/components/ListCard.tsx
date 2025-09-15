@@ -9,17 +9,16 @@ import {
 } from '@tabler/icons-react';
 import type { List, Task } from '@/types';
 import TaskCard from '@/features/task';
+import { TaskDetailsModal, TaskCreateModal, TaskEditModal, TaskDeleteModal } from '@/features/task';
+import { useBoard } from '@/context/BoardContext';
 
 interface ListCardProps {
   list: List;
   tasks: Task[];
   onEditList: (list: List) => void;
   onDeleteList: (list: List) => void;
-  onCreateTask: (listId: string, title: string) => Promise<void>;
-  onEditTask: (task: Task) => void;
-  onDeleteTask: (task: Task) => void;
   searchQuery?: string;
-  totalTasksInList?: number; // Total tasks before filtering
+  totalTasksInList?: number;
 }
 
 export default function ListCard({
@@ -27,31 +26,45 @@ export default function ListCard({
   tasks,
   onEditList,
   onDeleteList,
-  onCreateTask,
-  onEditTask,
-  onDeleteTask,
   searchQuery,
   totalTasksInList,
 }: ListCardProps) {
+  const { createTask, updateTask, deleteTask } = useBoard();
   const [showMenu, setShowMenu] = useState(false);
-  const [showCreateTask, setShowCreateTask] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [showTaskEditModal, setShowTaskEditModal] = useState(false);
+  const [showTaskDeleteModal, setShowTaskDeleteModal] = useState(false);
 
-  const handleCreateTask = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setShowTaskDetails(true);
+  };
 
-    if (!newTaskTitle.trim()) return;
+  const handleTaskEdit = (task: Task) => {
+    setSelectedTask(task);
+    setShowTaskEditModal(true);
+  };
 
+  const handleTaskDelete = (task: Task) => {
+    setSelectedTask(task);
+    setShowTaskDeleteModal(true);
+  };
+
+  const handleUpdateTask = async (taskId: string, data: { title?: string; description?: string; labels?: string[]; dueDate?: string }) => {
     try {
-      setIsCreatingTask(true);
-      await onCreateTask(list._id, newTaskTitle.trim());
-      setNewTaskTitle('');
-      setShowCreateTask(false);
+      await updateTask(taskId, data);
     } catch (error) {
-      console.error('Failed to create task:', error);
-    } finally {
-      setIsCreatingTask(false);
+      console.error('Failed to update task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await deleteTask(taskId);
+    } catch (error) {
+      console.error('Failed to delete task:', error);
     }
   };
 
@@ -117,60 +130,76 @@ export default function ListCard({
       </div>
 
       {/* Tasks */}
-      <div className="p-2 space-y-2">
+      <div className="p-3 space-y-2">
         {sortedTasks.map((task) => (
           <TaskCard
             key={task._id}
             task={task}
-            onEdit={() => onEditTask(task)}
-            onDelete={() => onDeleteTask(task)}
+            onEdit={handleTaskEdit}
+            onDelete={handleTaskDelete}
+            onOpenDetails={() => handleTaskClick(task)}
             searchQuery={searchQuery}
           />
         ))}
 
-        {/* Create Task Form */}
-        {showCreateTask ? (
-          <form onSubmit={handleCreateTask} className="space-y-2">
-            <textarea
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="Enter task title..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 resize-none"
-              rows={2}
-              autoFocus
-              disabled={isCreatingTask}
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateTask(false);
-                  setNewTaskTitle('');
-                }}
-                className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-all duration-200"
-                disabled={isCreatingTask}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded transition-all duration-200"
-                disabled={isCreatingTask || !newTaskTitle.trim()}
-              >
-                {isCreatingTask ? 'Adding...' : 'Add Task'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <button
-            onClick={() => setShowCreateTask(true)}
-            className="w-full p-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-all duration-200 flex items-center space-x-2"
-          >
-            <IconPlus className="w-4 h-4" />
-            <span>Add a task</span>
-          </button>
-        )}
+        {/* Create Task Quick Form */}
+        <button
+          onClick={() => setShowCreateTaskModal(true)}
+          className="w-full p-3 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+        >
+          <IconPlus className="w-4 h-4" />
+          <span>Add a task</span>
+        </button>
       </div>
+
+      {/* Task Details Modal */}
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          isOpen={showTaskDetails}
+          onClose={() => {
+            setShowTaskDetails(false);
+            setSelectedTask(null);
+          }}
+        />
+      )}
+
+      {/* Task Edit Modal */}
+      {selectedTask && (
+        <TaskEditModal
+          task={selectedTask}
+          isOpen={showTaskEditModal}
+          onClose={() => {
+            setShowTaskEditModal(false);
+            setSelectedTask(null);
+          }}
+          onSubmit={handleUpdateTask}
+        />
+      )}
+
+      {/* Task Delete Modal */}
+      {selectedTask && (
+        <TaskDeleteModal
+          task={selectedTask}
+          isOpen={showTaskDeleteModal}
+          onClose={() => {
+            setShowTaskDeleteModal(false);
+            setSelectedTask(null);
+          }}
+          onConfirm={handleDeleteTask}
+        />
+      )}
+
+      {/* Task Create Modal */}
+      <TaskCreateModal
+        isOpen={showCreateTaskModal}
+        onClose={() => setShowCreateTaskModal(false)}
+        onCreate={async (data) => {
+          await createTask(list._id, data);
+          setShowCreateTaskModal(false);
+        }}
+        listTitle={list.title}
+      />
     </div>
   );
 }

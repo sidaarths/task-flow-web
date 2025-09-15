@@ -1,5 +1,10 @@
 import BoardPage from '@/features/board';
+import { BoardProvider } from '@/context/BoardContext';
 
 export default function Board() {
-  return <BoardPage />;
+  return (
+    <BoardProvider>
+      <BoardPage />
+    </BoardProvider>
+  );
 }

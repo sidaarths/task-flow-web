@@ -80,6 +80,7 @@ export default function EditListModal({
               className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               List Title
+              <span className="required-asterisk">*</span>
             </label>
             <input
               type="text"
@@ -87,7 +88,7 @@ export default function EditListModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-              placeholder="Enter list title..."
+              placeholder="Enter list title"
               disabled={isLoading}
               autoFocus
             />

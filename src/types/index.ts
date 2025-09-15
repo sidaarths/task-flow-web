@@ -68,6 +68,8 @@ export interface UpdateListRequest {
 export interface CreateTaskRequest {
   title: string;
   description?: string;
+  labels?: string[];
+  dueDate?: string;
 }
 
 export interface UpdateTaskRequest {

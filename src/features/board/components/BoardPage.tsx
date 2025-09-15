@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   IconPlus,
@@ -10,12 +10,10 @@ import {
   IconClipboardText,
   IconUserPlus,
 } from '@tabler/icons-react';
-import { boardApi } from '../api/board';
-import type { BoardWithListsAndTasks, List, Task } from '@/types';
-import { listApi } from '@/features/list/api/list';
-import { taskApi } from '@/features/task/api/task';
+import type { List, Task } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import CreateListModal from './CreateListModal';
+import { useBoard } from '@/context/BoardContext';
+import CreateListModal from '../../list/components/CreateListModal';
 import InviteUsersModal from './InviteUsersModal';
 import BoardMembersModal from './BoardMembersModal';
 import ListCard, { EditListModal, DeleteListModal } from '@/features/list';
@@ -25,14 +23,20 @@ export default function BoardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: currentUser } = useAuth();
+  const {
+    boardData,
+    loading,
+    error,
+    fetchBoardData,
+    createList,
+    updateList,
+    deleteList,
+    addBoardMembers,
+    removeBoardMember,
+  } = useBoard();
+  
   const boardId = params.boardId as string;
   const searchQuery = searchParams.get('query') || '';
-
-  const [boardData, setBoardData] = useState<BoardWithListsAndTasks | null>(
-    null
-  );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   // Modal states
   const [showCreateListModal, setShowCreateListModal] = useState(false);
@@ -47,38 +51,16 @@ export default function BoardPage() {
   const [isUpdatingList, setIsUpdatingList] = useState(false);
   const [isDeletingList, setIsDeletingList] = useState(false);
 
-  const fetchBoardData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const data = await boardApi.getBoardWithListsAndTasks(boardId);
-      setBoardData(data);
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to fetch board data'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [boardId]);
-
   useEffect(() => {
     if (boardId) {
-      fetchBoardData();
+      fetchBoardData(boardId);
     }
   }, [boardId, fetchBoardData]);
 
   const handleCreateList = async (title: string) => {
     try {
       setIsCreatingList(true);
-      const newList = await boardApi.createList(boardId, { title });
-
-      if (boardData) {
-        setBoardData({
-          ...boardData,
-          lists: [...boardData.lists, newList],
-        });
-      }
+      await createList(boardId, title);
     } catch (error) {
       throw error;
     } finally {
@@ -94,16 +76,7 @@ export default function BoardPage() {
   const handleUpdateList = async (listId: string, title: string) => {
     try {
       setIsUpdatingList(true);
-      const updatedList = await listApi.updateList(listId, { title });
-
-      if (boardData) {
-        setBoardData({
-          ...boardData,
-          lists: boardData.lists.map((list) =>
-            list._id === listId ? updatedList : list
-          ),
-        });
-      }
+      await updateList(listId, title);
     } catch (error) {
       throw error;
     } finally {
@@ -119,15 +92,7 @@ export default function BoardPage() {
   const handleConfirmDeleteList = async (listId: string) => {
     try {
       setIsDeletingList(true);
-      await listApi.deleteList(listId);
-
-      if (boardData) {
-        setBoardData({
-          ...boardData,
-          lists: boardData.lists.filter((list) => list._id !== listId),
-          tasks: boardData.tasks.filter((task) => task.listId !== listId),
-        });
-      }
+      await deleteList(listId);
     } catch (error) {
       throw error;
     } finally {
@@ -135,62 +100,19 @@ export default function BoardPage() {
     }
   };
 
-  const handleCreateTask = async (listId: string, title: string) => {
+  const handleMembersAdded = async (newMemberIds: string[]) => {
     try {
-      const newTask = await listApi.createTask(listId, { title });
-
-      if (boardData) {
-        setBoardData({
-          ...boardData,
-          tasks: [...boardData.tasks, newTask],
-        });
-      }
+      await addBoardMembers(boardId, newMemberIds);
     } catch (error) {
-      console.error('Failed to create task:', error);
-      throw error;
+      console.error('Failed to add members:', error);
     }
   };
 
-  const handleEditTask = (task: Task) => {
-    // TODO: Implement task editing modal
-    console.log('TODO: Edit task:', task);
-  };
-
-  const handleDeleteTask = async (task: Task) => {
+  const handleMemberRemoved = async (removedUserId: string) => {
     try {
-      await taskApi.deleteTask(task._id);
-      if (boardData) {
-        setBoardData({
-          ...boardData,
-          tasks: boardData.tasks.filter((t) => t._id !== task._id),
-        });
-      }
+      await removeBoardMember(boardId, removedUserId);
     } catch (error) {
-      console.error('Failed to delete task:', error);
-    }
-  };
-
-  const handleMembersAdded = (newMemberIds: string[]) => {
-    if (boardData) {
-      setBoardData({
-        ...boardData,
-        board: {
-          ...boardData.board,
-          members: [...boardData.board.members, ...newMemberIds],
-        },
-      });
-    }
-  };
-
-  const handleMemberRemoved = (removedUserId: string) => {
-    if (boardData) {
-      setBoardData({
-        ...boardData,
-        board: {
-          ...boardData.board,
-          members: boardData.board.members.filter((id) => id !== removedUserId),
-        },
-      });
+      console.error('Failed to remove member:', error);
     }
   };
 
@@ -253,7 +175,7 @@ export default function BoardPage() {
           <p className="text-gray-600 dark:text-gray-400">{error}</p>
           <div className="space-x-3">
             <button
-              onClick={fetchBoardData}
+              onClick={() => fetchBoardData(boardId)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200"
             >
               Try Again
@@ -353,9 +275,6 @@ export default function BoardPage() {
               tasks={getTasksForList(list._id)}
               onEditList={handleEditList}
               onDeleteList={handleDeleteList}
-              onCreateTask={handleCreateTask}
-              onEditTask={handleEditTask}
-              onDeleteTask={handleDeleteTask}
               searchQuery={searchQuery}
               totalTasksInList={getTotalTasksForList(list._id)}
             />

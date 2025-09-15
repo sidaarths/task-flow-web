@@ -34,4 +34,15 @@ export const listApi = {
       throw new Error('Failed to create task');
     }
   },
+
+  async getTasks(listId: string): Promise<Task[]> {
+    try {
+      const response = await httpClient.get(
+        `${API_ROUTES.LISTS}/${listId}${API_ROUTES.TASKS}`
+      );
+      return response.data;
+    } catch {
+      throw new Error('Failed to fetch tasks');
+    }
+  },
 };
