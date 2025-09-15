@@ -1,5 +1,6 @@
-'use client';
+ 'use client';
 
+import { useMemo } from 'react';
 import {
   IconX,
   IconCalendar,
@@ -30,10 +31,15 @@ export default function TaskDetailsModal({
     });
   };
 
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
-  const isToday =
-    task.dueDate &&
-    new Date(task.dueDate).toDateString() === new Date().toDateString();
+  const now = useMemo(() => new Date(), []);
+  const dueDateObj = useMemo(() => (task.dueDate ? new Date(task.dueDate) : null), [task.dueDate]);
+
+  const isOverdue = Boolean(dueDateObj && dueDateObj < now);
+  const isToday = Boolean(dueDateObj && dueDateObj.toDateString() === now.toDateString());
+
+  const formattedDueDate = useMemo(() => formatDate(task.dueDate), [task.dueDate]);
+  const formattedCreatedAt = useMemo(() => formatDate(task.createdAt), [task.createdAt]);
+  const formattedUpdatedAt = useMemo(() => formatDate(task.updatedAt), [task.updatedAt]);
 
   if (!isOpen) return null;
 
@@ -97,7 +103,7 @@ export default function TaskDetailsModal({
                           : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
                     }`}
                   >
-                    {formatDate(task.dueDate)}
+                    {formattedDueDate}
                   </span>
                 </div>
               ) : (
@@ -162,7 +168,7 @@ export default function TaskDetailsModal({
               </label>
               <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                 <IconClock className="w-4 h-4" />
-                <span>{formatDate(task.createdAt)}</span>
+                <span>{formattedCreatedAt}</span>
               </div>
             </div>
             <div>
@@ -171,7 +177,7 @@ export default function TaskDetailsModal({
               </label>
               <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                 <IconClock className="w-4 h-4" />
-                <span>{formatDate(task.updatedAt)}</span>
+                <span>{formattedUpdatedAt}</span>
               </div>
             </div>
           </div>

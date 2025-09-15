@@ -130,12 +130,16 @@ export default function DatePicker({
     const firstDayOfWeek = firstDayOfMonth.startOf('week');
     const lastDayOfWeek = lastDayOfMonth.endOf('week');
 
-    const days = [];
-    let current = firstDayOfWeek;
+    const days: dayjs.Dayjs[] = [];
+    const diff = lastDayOfWeek.diff(firstDayOfWeek, 'day');
+    let daysCount = diff + 1; // inclusive
+    const MAX_DAYS = 42;
 
-    while (current.isBefore(lastDayOfWeek) || current.isSame(lastDayOfWeek)) {
-      days.push(current);
-      current = current.add(1, 'day');
+    if (daysCount < 0) daysCount = 0;
+    if (daysCount > MAX_DAYS) daysCount = MAX_DAYS;
+
+    for (let i = 0; i < daysCount; i++) {
+      days.push(firstDayOfWeek.add(i, 'day'));
     }
 
     return days;

@@ -213,7 +213,7 @@ export default function TaskEditModal({
                   onChange={(e) => setNewLabel(e.target.value)}
                   placeholder="Add label"
                   className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                  onKeyPress={(e) => e.key === 'Enter' && addLabel()}
+                  onKeyDown={(e) => e.key === 'Enter' && addLabel()}
                   disabled={isLoading}
                 />
                 <button
