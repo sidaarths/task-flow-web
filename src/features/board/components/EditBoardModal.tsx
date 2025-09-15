@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Board, UpdateBoardRequest } from '@/types';
 import { IconLoader2, IconX } from '@tabler/icons-react';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface EditBoardModalProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export default function EditBoardModal({
       await onUpdate(board._id, formData);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update board');
+      setError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

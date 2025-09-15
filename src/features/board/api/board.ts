@@ -1,6 +1,7 @@
 import { API_ROUTES } from '@/config/apiConfig';
 import httpClient from '@/config/httpClient';
 import type { List, BoardWithListsAndTasks, CreateListRequest } from '@/types';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 export const boardApi = {
   async getBoardWithListsAndTasks(
@@ -9,8 +10,8 @@ export const boardApi = {
     try {
       const response = await httpClient.get(`${API_ROUTES.BOARDS}/${boardId}`);
       return response.data;
-    } catch {
-      throw new Error('Failed to fetch board details');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -21,8 +22,8 @@ export const boardApi = {
         data
       );
       return response.data;
-    } catch {
-      throw new Error('Failed to create list');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 };

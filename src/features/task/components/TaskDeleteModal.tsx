@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { IconX, IconAlertTriangle } from '@tabler/icons-react';
 import type { Task } from '@/types';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface TaskDeleteModalProps {
   isOpen: boolean;
@@ -18,15 +20,24 @@ export default function TaskDeleteModal({
   task,
   isLoading = false,
 }: TaskDeleteModalProps) {
+  const [error, setError] = useState('');
+
   const handleConfirm = async () => {
     if (!task) return;
 
     try {
+      setError('');
       await onConfirm(task._id);
       onClose();
     } catch (error) {
       console.error('Failed to delete task:', error);
+      setError(getErrorMessage(error));
     }
+  };
+
+  const handleClose = () => {
+    setError('');
+    onClose();
   };
 
   if (!isOpen || !task) return null;
@@ -44,7 +55,7 @@ export default function TaskDeleteModal({
             </h3>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-all duration-200"
             disabled={isLoading}
           >
@@ -53,6 +64,13 @@ export default function TaskDeleteModal({
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Error Message */}
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
           <div className="text-sm text-gray-600 dark:text-gray-400">
             Are you sure you want to delete the task{' '}
             <span className="font-semibold text-gray-900 dark:text-white">
@@ -78,15 +96,15 @@ export default function TaskDeleteModal({
           <div className="flex justify-end space-x-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-all duration-200"
+              onClick={handleClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-red-400 rounded-md transition-all duration-200 flex items-center space-x-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed rounded-md transition-all duration-200 flex items-center space-x-2"
               disabled={isLoading}
             >
               {isLoading ? (

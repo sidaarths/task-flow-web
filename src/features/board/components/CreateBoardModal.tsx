@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { IconLoader2, IconX } from '@tabler/icons-react';
 import type { CreateBoardRequest } from '@/types';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface CreateBoardModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export default function CreateBoardModal({
       setFormData({ title: '', description: '' });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create board');
+      setError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

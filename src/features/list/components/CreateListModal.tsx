@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { IconX } from '@tabler/icons-react';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface CreateListModalProps {
   isOpen: boolean;
@@ -33,9 +34,7 @@ export default function CreateListModal({
       setTitle('');
       onClose();
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to create list'
-      );
+      setError(getErrorMessage(error));
     }
   };
 

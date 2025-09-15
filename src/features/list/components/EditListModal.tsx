@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { IconX, IconCheck } from '@tabler/icons-react';
 import { List } from '@/types';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface EditListModalProps {
   isOpen: boolean;
@@ -43,9 +44,7 @@ export default function EditListModal({
       await onSubmit(list._id, title.trim());
       onClose();
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to update list'
-      );
+      setError(getErrorMessage(error));
     }
   };
 

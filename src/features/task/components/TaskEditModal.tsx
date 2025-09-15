@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { IconX, IconCheck, IconPlus } from '@tabler/icons-react';
 import type { Task, UpdateTaskRequest } from '@/types';
 import DatePicker from '@/components/DatePicker';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface TaskEditModalProps {
   isOpen: boolean;
@@ -65,9 +66,7 @@ export default function TaskEditModal({
       await onSubmit(task._id, updateData);
       onClose();
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Failed to update task'
-      );
+      setError(getErrorMessage(error));
     }
   };
 
@@ -119,6 +118,13 @@ export default function TaskEditModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Error Message */}
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
           {/* Title */}
           <div>
             <label
@@ -233,14 +239,14 @@ export default function TaskEditModal({
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-all duration-200"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-md transition-all duration-200 flex items-center space-x-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed rounded-md transition-all duration-200 flex items-center space-x-2"
               disabled={isLoading || !editData.title?.trim()}
             >
               {isLoading ? (

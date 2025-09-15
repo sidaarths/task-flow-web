@@ -1,7 +1,8 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { getUserProfile } from '@/api/user';
 import type { User } from '@/types';
+import { API_ROUTES } from '@/config/apiConfig';
+import httpClient from '@/config/httpClient';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -11,6 +12,16 @@ interface AuthContextType {
   login: (token: string) => void;
   logout: () => void;
 }
+
+// Fetch user profile from the API
+export const getUserProfile = async (): Promise<User> => {
+  try {
+    const response = await httpClient.get(API_ROUTES.USER_PROFILE);
+    return response.data;
+  } catch {
+    throw new Error('Failed to fetch user profile');
+  }
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

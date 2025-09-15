@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { IconX, IconPlus, IconTag, IconCheck } from '@tabler/icons-react';
 import type { CreateTaskRequest } from '@/types';
 import DatePicker from '@/components/DatePicker';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 interface TaskCreateModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export default function TaskCreateModal({
   });
   const [newLabel, setNewLabel] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState('');
 
   const resetForm = () => {
     setFormData({
@@ -42,6 +44,7 @@ export default function TaskCreateModal({
       dueDate: null,
     });
     setNewLabel('');
+    setError('');
   };
 
   const handleClose = () => {
@@ -69,9 +72,13 @@ export default function TaskCreateModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim()) {
+      setError('Task title is required');
+      return;
+    }
 
     try {
+      setError('');
       setIsCreating(true);
       const createData: CreateTaskRequest = {
         title: formData.title.trim(),
@@ -84,6 +91,7 @@ export default function TaskCreateModal({
       handleClose();
     } catch (error) {
       console.error('Failed to create task:', error);
+      setError(getErrorMessage(error));
     } finally {
       setIsCreating(false);
     }
@@ -114,6 +122,13 @@ export default function TaskCreateModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Error Message */}
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -215,14 +230,15 @@ export default function TaskCreateModal({
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-all duration-200"
+              disabled={isCreating}
+              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!formData.title.trim() || isCreating}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-all duration-200 flex items-center space-x-2"
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 flex items-center space-x-2"
             >
               <IconCheck className="w-4 h-4" />
               <span>{isCreating ? 'Creating...' : 'Create Task'}</span>

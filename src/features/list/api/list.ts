@@ -1,6 +1,7 @@
 import httpClient from '@/config/httpClient';
 import { List, Task, UpdateListRequest, CreateTaskRequest } from '@/types';
 import { API_ROUTES } from '@/config/apiConfig';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 export const listApi = {
   async updateList(listId: string, data: UpdateListRequest): Promise<List> {
@@ -10,16 +11,16 @@ export const listApi = {
         data
       );
       return response.data;
-    } catch {
-      throw new Error('Failed to update list');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
   async deleteList(listId: string): Promise<void> {
     try {
       await httpClient.delete(`${API_ROUTES.LISTS}/${listId}`);
-    } catch {
-      throw new Error('Failed to delete list');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -30,8 +31,8 @@ export const listApi = {
         data
       );
       return response.data;
-    } catch {
-      throw new Error('Failed to create task');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -41,8 +42,8 @@ export const listApi = {
         `${API_ROUTES.LISTS}/${listId}${API_ROUTES.TASKS}`
       );
       return response.data;
-    } catch {
-      throw new Error('Failed to fetch tasks');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 };

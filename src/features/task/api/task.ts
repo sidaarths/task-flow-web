@@ -1,14 +1,15 @@
 import httpClient from '@/config/httpClient';
 import { Task, UpdateTaskRequest } from '@/types';
 import { API_ROUTES } from '@/config/apiConfig';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 export const taskApi = {
   async getTask(taskId: string): Promise<Task> {
     try {
       const response = await httpClient.get(`${API_ROUTES.TASKS}/${taskId}`);
       return response.data;
-    } catch {
-      throw new Error('Failed to fetch task');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -19,16 +20,16 @@ export const taskApi = {
         data
       );
       return response.data;
-    } catch {
-      throw new Error('Failed to update task');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
   async deleteTask(taskId: string): Promise<void> {
     try {
       await httpClient.delete(`${API_ROUTES.TASKS}/${taskId}`);
-    } catch {
-      throw new Error('Failed to delete task');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -38,8 +39,8 @@ export const taskApi = {
         `${API_ROUTES.TASKS}/${taskId}/users/${userId}`
       );
       return response.data;
-    } catch {
-      throw new Error('Failed to assign user to task');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -49,8 +50,8 @@ export const taskApi = {
         `${API_ROUTES.TASKS}/${taskId}/users/${userId}`
       );
       return response.data;
-    } catch {
-      throw new Error('Failed to unassign user from task');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -60,8 +61,8 @@ export const taskApi = {
         `${API_ROUTES.TASKS}/${taskId}/lists/${listId}`
       );
       return response.data;
-    } catch {
-      throw new Error('Failed to move task');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 
@@ -75,8 +76,8 @@ export const taskApi = {
         position,
         listId,
       });
-    } catch {
-      throw new Error('Failed to update task position');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 };
