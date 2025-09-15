@@ -5,10 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import { boardsApi } from '../api/boards';
 import type { Board, CreateBoardRequest, UpdateBoardRequest } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import BoardCard from './BoardCard';
-import CreateBoardModal from './CreateBoardModal';
-import EditBoardModal from './EditBoardModal';
-import DeleteBoardModal from './DeleteBoardModal';
+import {
+  CreateBoardModal,
+  EditBoardModal,
+  DeleteBoardModal,
+  BoardCard,
+} from '@/features/board';
 import {
   IconAlertTriangle,
   IconLoader2,

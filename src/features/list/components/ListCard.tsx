@@ -9,7 +9,12 @@ import {
 } from '@tabler/icons-react';
 import type { List, Task } from '@/types';
 import TaskCard from '@/features/task';
-import { TaskDetailsModal, TaskCreateModal, TaskEditModal, TaskDeleteModal } from '@/features/task';
+import {
+  TaskDetailsModal,
+  TaskCreateModal,
+  TaskEditModal,
+  TaskDeleteModal,
+} from '@/features/task';
 import { useBoard } from '@/context/BoardContext';
 
 interface ListCardProps {
@@ -52,7 +57,15 @@ export default function ListCard({
     setShowTaskDeleteModal(true);
   };
 
-  const handleUpdateTask = async (taskId: string, data: { title?: string; description?: string; labels?: string[]; dueDate?: string }) => {
+  const handleUpdateTask = async (
+    taskId: string,
+    data: {
+      title?: string;
+      description?: string;
+      labels?: string[];
+      dueDate?: string;
+    }
+  ) => {
     try {
       await updateTask(taskId, data);
     } catch (error) {

@@ -31,7 +31,9 @@ export default function TaskDetailsModal({
   };
 
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
-  const isToday = task.dueDate && new Date(task.dueDate).toDateString() === new Date().toDateString();
+  const isToday =
+    task.dueDate &&
+    new Date(task.dueDate).toDateString() === new Date().toDateString();
 
   if (!isOpen) return null;
 
@@ -91,8 +93,8 @@ export default function TaskDetailsModal({
                       isOverdue
                         ? 'bg-red-500/10 text-red-700 dark:text-red-300'
                         : isToday
-                        ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                        : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+                          ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                          : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
                     }`}
                   >
                     {formatDate(task.dueDate)}
@@ -141,7 +143,8 @@ export default function TaskDetailsModal({
               <IconUser className="w-5 h-5 text-gray-500" />
               {task.assignedTo.length > 0 ? (
                 <span className="px-3 py-1 bg-gray-500/10 text-gray-600 dark:text-gray-400 rounded-full text-sm">
-                  {task.assignedTo.length} user{task.assignedTo.length !== 1 ? 's' : ''} assigned
+                  {task.assignedTo.length} user
+                  {task.assignedTo.length !== 1 ? 's' : ''} assigned
                 </span>
               ) : (
                 <span className="text-gray-500 dark:text-gray-400 italic">

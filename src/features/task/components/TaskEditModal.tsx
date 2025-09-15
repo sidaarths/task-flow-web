@@ -4,7 +4,6 @@ import { IconX, IconCheck, IconPlus } from '@tabler/icons-react';
 import type { Task, UpdateTaskRequest } from '@/types';
 import DatePicker from '@/components/DatePicker';
 
-
 interface TaskEditModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,7 +19,14 @@ export default function TaskEditModal({
   task,
   isLoading = false,
 }: TaskEditModalProps) {
-  const [editData, setEditData] = useState<Omit<UpdateTaskRequest, 'dueDate'> & { dueDate: Date | null }>({
+  interface TaskEditFormData {
+    title: string;
+    description?: string;
+    labels: string[];
+    dueDate: Date | null;
+  }
+
+  const [editData, setEditData] = useState<TaskEditFormData>({
     title: '',
     description: '',
     labels: [],
@@ -78,7 +84,7 @@ export default function TaskEditModal({
   const removeLabel = (labelToRemove: string) => {
     setEditData({
       ...editData,
-      labels: editData.labels?.filter(label => label !== labelToRemove) || [],
+      labels: editData.labels?.filter((label) => label !== labelToRemove) || [],
     });
   };
 
@@ -126,7 +132,9 @@ export default function TaskEditModal({
               type="text"
               id="title"
               value={editData.title || ''}
-              onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, title: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
               placeholder="Enter task title"
               disabled={isLoading}
@@ -150,7 +158,9 @@ export default function TaskEditModal({
             <textarea
               id="description"
               value={editData.description || ''}
-              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, description: e.target.value })
+              }
               rows={4}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 resize-none"
               placeholder="Enter task description"

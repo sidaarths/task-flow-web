@@ -1,7 +1,18 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import type { BoardWithListsAndTasks, List, Task, CreateTaskRequest, UpdateTaskRequest } from '@/types';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+} from 'react';
+import type {
+  BoardWithListsAndTasks,
+  List,
+  Task,
+  CreateTaskRequest,
+  UpdateTaskRequest,
+} from '@/types';
 import { boardApi } from '@/features/board/api/board';
 import { listApi } from '@/features/list/api/list';
 import { taskApi } from '@/features/task/api/task';
@@ -59,8 +70,12 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
         ...state,
         boardData: {
           ...state.boardData,
-          lists: state.boardData.lists.filter((list) => list._id !== action.payload),
-          tasks: state.boardData.tasks.filter((task) => task.listId !== action.payload),
+          lists: state.boardData.lists.filter(
+            (list) => list._id !== action.payload
+          ),
+          tasks: state.boardData.tasks.filter(
+            (task) => task.listId !== action.payload
+          ),
         },
       };
     case 'ADD_TASK':
@@ -89,7 +104,9 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
         ...state,
         boardData: {
           ...state.boardData,
-          tasks: state.boardData.tasks.filter((task) => task._id !== action.payload),
+          tasks: state.boardData.tasks.filter(
+            (task) => task._id !== action.payload
+          ),
         },
       };
     case 'ADD_BOARD_MEMBERS':
@@ -112,7 +129,9 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
           ...state.boardData,
           board: {
             ...state.boardData.board,
-            members: state.boardData.board.members.filter((id) => id !== action.payload),
+            members: state.boardData.board.members.filter(
+              (id) => id !== action.payload
+            ),
           },
         },
       };
@@ -126,17 +145,17 @@ interface BoardContextType {
   boardData: BoardWithListsAndTasks | null;
   loading: boolean;
   error: string;
-  
+
   // Board actions
   fetchBoardData: (boardId: string) => Promise<void>;
   addBoardMembers: (boardId: string, userIds: string[]) => Promise<void>;
   removeBoardMember: (boardId: string, userId: string) => Promise<void>;
-  
+
   // List actions
   createList: (boardId: string, title: string) => Promise<void>;
   updateList: (listId: string, title: string) => Promise<void>;
   deleteList: (listId: string) => Promise<void>;
-  
+
   // Task actions
   createTask: (listId: string, data: CreateTaskRequest) => Promise<void>;
   updateTask: (taskId: string, data: UpdateTaskRequest) => Promise<void>;
@@ -174,31 +193,38 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     } catch (error) {
       dispatch({
         type: 'SET_ERROR',
-        payload: error instanceof Error ? error.message : 'Failed to fetch board data',
+        payload:
+          error instanceof Error ? error.message : 'Failed to fetch board data',
       });
     }
   }, []);
 
-  const addBoardMembers = useCallback(async (boardId: string, userIds: string[]) => {
-    try {
-      // Invite each user individually as the API expects single user invites
-      for (const userId of userIds) {
-        await boardApi.inviteUserToBoard(boardId, userId);
+  const addBoardMembers = useCallback(
+    async (boardId: string, userIds: string[]) => {
+      try {
+        // Invite each user individually as the API expects single user invites
+        for (const userId of userIds) {
+          await boardApi.inviteUserToBoard(boardId, userId);
+        }
+        dispatch({ type: 'ADD_BOARD_MEMBERS', payload: userIds });
+      } catch (error) {
+        throw error;
       }
-      dispatch({ type: 'ADD_BOARD_MEMBERS', payload: userIds });
-    } catch (error) {
-      throw error;
-    }
-  }, []);
+    },
+    []
+  );
 
-  const removeBoardMember = useCallback(async (boardId: string, userId: string) => {
-    try {
-      await boardApi.removeMemberFromBoard(boardId, userId);
-      dispatch({ type: 'REMOVE_BOARD_MEMBER', payload: userId });
-    } catch (error) {
-      throw error;
-    }
-  }, []);
+  const removeBoardMember = useCallback(
+    async (boardId: string, userId: string) => {
+      try {
+        await boardApi.removeMemberFromBoard(boardId, userId);
+        dispatch({ type: 'REMOVE_BOARD_MEMBER', payload: userId });
+      } catch (error) {
+        throw error;
+      }
+    },
+    []
+  );
 
   // List actions
   const createList = useCallback(async (boardId: string, title: string) => {
@@ -229,23 +255,29 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   }, []);
 
   // Task actions
-  const createTask = useCallback(async (listId: string, data: CreateTaskRequest) => {
-    try {
-      const newTask = await listApi.createTask(listId, data);
-      dispatch({ type: 'ADD_TASK', payload: newTask });
-    } catch (error) {
-      throw error;
-    }
-  }, []);
+  const createTask = useCallback(
+    async (listId: string, data: CreateTaskRequest) => {
+      try {
+        const newTask = await listApi.createTask(listId, data);
+        dispatch({ type: 'ADD_TASK', payload: newTask });
+      } catch (error) {
+        throw error;
+      }
+    },
+    []
+  );
 
-  const updateTask = useCallback(async (taskId: string, data: UpdateTaskRequest) => {
-    try {
-      const updatedTask = await taskApi.updateTask(taskId, data);
-      dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
-    } catch (error) {
-      throw error;
-    }
-  }, []);
+  const updateTask = useCallback(
+    async (taskId: string, data: UpdateTaskRequest) => {
+      try {
+        const updatedTask = await taskApi.updateTask(taskId, data);
+        dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
+      } catch (error) {
+        throw error;
+      }
+    },
+    []
+  );
 
   const deleteTask = useCallback(async (taskId: string) => {
     try {
@@ -261,17 +293,17 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     boardData: state.boardData,
     loading: state.loading,
     error: state.error,
-    
+
     // Board actions
     fetchBoardData,
     addBoardMembers,
     removeBoardMember,
-    
+
     // List actions
     createList,
     updateList,
     deleteList,
-    
+
     // Task actions
     createTask,
     updateTask,

@@ -1,7 +1,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IconCalendar, IconChevronLeft, IconChevronRight, IconX } from '@tabler/icons-react';
+import {
+  IconCalendar,
+  IconChevronLeft,
+  IconChevronRight,
+  IconX,
+} from '@tabler/icons-react';
 import dayjs from 'dayjs';
 
 interface DatePickerProps {
@@ -18,8 +23,18 @@ interface DatePickerProps {
 }
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -65,12 +80,12 @@ export default function DatePicker({
 
   const handleDateSelect = (date: dayjs.Dayjs) => {
     if (disabled) return;
-    
+
     const newDate = date.toDate();
-    
+
     if (minDate && newDate < minDate) return;
     if (maxDate && newDate > maxDate) return;
-    
+
     onChange(newDate);
     setIsOpen(false);
   };
@@ -87,7 +102,7 @@ export default function DatePicker({
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentMonth(prev => 
+    setCurrentMonth((prev) =>
       direction === 'prev' ? prev.subtract(1, 'month') : prev.add(1, 'month')
     );
   };
@@ -136,7 +151,7 @@ export default function DatePicker({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      
+
       <div className="relative">
         <button
           ref={buttonRef}
@@ -145,11 +160,12 @@ export default function DatePicker({
           disabled={disabled}
           className={`
             w-full px-3 py-2 text-left border rounded-lg transition-all duration-200 flex items-center justify-between
-            ${disabled 
-              ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-gray-300 dark:border-gray-600'
-              : isOpen
-                ? 'border-blue-500 ring-2 ring-blue-500/20 bg-white dark:bg-gray-700'
-                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
+            ${
+              disabled
+                ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed border-gray-300 dark:border-gray-600'
+                : isOpen
+                  ? 'border-blue-500 ring-2 ring-blue-500/20 bg-white dark:bg-gray-700'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
             }
             ${value ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}
             ${error ? 'border-red-500 ring-2 ring-red-500/20' : ''}
@@ -187,11 +203,11 @@ export default function DatePicker({
               >
                 <IconChevronLeft className="w-4 h-4" />
               </button>
-              
+
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                 {MONTHS[currentMonth.month()]} {currentMonth.year()}
               </h3>
-              
+
               <button
                 type="button"
                 onClick={() => navigateMonth('next')}
@@ -203,7 +219,7 @@ export default function DatePicker({
 
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {WEEKDAYS.map(day => (
+              {WEEKDAYS.map((day) => (
                 <div
                   key={day}
                   className="text-xs font-medium text-gray-500 dark:text-gray-400 text-center py-2"
@@ -229,15 +245,16 @@ export default function DatePicker({
                     disabled={isDisabled}
                     className={`
                       w-8 h-8 text-xs rounded-lg transition-all duration-200 flex items-center justify-center
-                      ${!isCurrentMonth 
-                        ? 'text-gray-300 dark:text-gray-600' 
-                        : isSelected
-                          ? 'bg-blue-600 text-white font-semibold'
-                          : isTodayDate
-                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-medium'
-                            : isDisabled
-                              ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      ${
+                        !isCurrentMonth
+                          ? 'text-gray-300 dark:text-gray-600'
+                          : isSelected
+                            ? 'bg-blue-600 text-white font-semibold'
+                            : isTodayDate
+                              ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-medium'
+                              : isDisabled
+                                ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }
                     `}
                   >

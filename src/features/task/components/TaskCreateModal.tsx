@@ -1,12 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  IconX,
-  IconPlus,
-  IconTag,
-  IconCheck,
-} from '@tabler/icons-react';
+import { IconX, IconPlus, IconTag, IconCheck } from '@tabler/icons-react';
 import type { CreateTaskRequest } from '@/types';
 import DatePicker from '@/components/DatePicker';
 
@@ -23,7 +18,14 @@ export default function TaskCreateModal({
   onCreate,
   listTitle,
 }: TaskCreateModalProps) {
-  const [formData, setFormData] = useState<Omit<CreateTaskRequest, 'dueDate'> & { labels: string[]; dueDate: Date | null }>({
+  interface TaskFormData {
+    title: string;
+    description?: string;
+    labels: string[];
+    dueDate: Date | null;
+  }
+
+  const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
     labels: [],
@@ -60,13 +62,13 @@ export default function TaskCreateModal({
   const removeLabel = (labelToRemove: string) => {
     setFormData({
       ...formData,
-      labels: formData.labels.filter(label => label !== labelToRemove),
+      labels: formData.labels.filter((label) => label !== labelToRemove),
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) return;
 
     try {
@@ -121,7 +123,9 @@ export default function TaskCreateModal({
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
               placeholder="Enter task title"
               autoFocus
@@ -136,7 +140,9 @@ export default function TaskCreateModal({
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               rows={3}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 resize-none"
               placeholder="Enter task description"
@@ -187,7 +193,9 @@ export default function TaskCreateModal({
                   onChange={(e) => setNewLabel(e.target.value)}
                   placeholder="Add label"
                   className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLabel())}
+                  onKeyDown={(e) =>
+                    e.key === 'Enter' && (e.preventDefault(), addLabel())
+                  }
                 />
                 <button
                   type="button"

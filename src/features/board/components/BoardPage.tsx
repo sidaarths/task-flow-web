@@ -13,10 +13,15 @@ import {
 import type { List, Task } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useBoard } from '@/context/BoardContext';
-import CreateListModal from '../../list/components/CreateListModal';
-import InviteUsersModal from './InviteUsersModal';
-import BoardMembersModal from './BoardMembersModal';
-import ListCard, { EditListModal, DeleteListModal } from '@/features/list';
+import {
+  InviteUsersModal,
+  BoardMembersModal,
+} from '@/features/board-member-management';
+import ListCard, {
+  CreateListModal,
+  EditListModal,
+  DeleteListModal,
+} from '@/features/list';
 
 export default function BoardPage() {
   const params = useParams();
@@ -34,7 +39,7 @@ export default function BoardPage() {
     addBoardMembers,
     removeBoardMember,
   } = useBoard();
-  
+
   const boardId = params.boardId as string;
   const searchQuery = searchParams.get('query') || '';
 

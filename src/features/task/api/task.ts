@@ -65,7 +65,11 @@ export const taskApi = {
     }
   },
 
-  async updateTaskPosition(taskId: string, position: number, listId?: string): Promise<void> {
+  async updateTaskPosition(
+    taskId: string,
+    position: number,
+    listId?: string
+  ): Promise<void> {
     try {
       await httpClient.put(`${API_ROUTES.TASKS}/${taskId}/position`, {
         position,

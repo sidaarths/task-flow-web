@@ -33,7 +33,7 @@ export default function TaskDeleteModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md transform transition-all duration-200 scale-100 max-h-[98vh] overflow-visible">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md transform transition-all duration-200 scale-100 max-h-[98vh] overflow-visible">
         <div className="flex items-center justify-between p-6 border-b border-gray-200/60 dark:border-gray-600/60">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
@@ -68,7 +68,9 @@ export default function TaskDeleteModal({
                 <div className="font-medium mb-1">
                   Warning: This action cannot be undone
                 </div>
-                <div>The task and all its data will be permanently deleted.</div>
+                <div>
+                  The task and all its data will be permanently deleted.
+                </div>
               </div>
             </div>
           </div>

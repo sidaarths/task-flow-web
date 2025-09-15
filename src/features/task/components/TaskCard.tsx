@@ -65,16 +65,20 @@ export default function TaskCard({
   };
 
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
-  const isToday = task.dueDate && new Date(task.dueDate).toDateString() === new Date().toDateString();
+  const isToday =
+    task.dueDate &&
+    new Date(task.dueDate).toDateString() === new Date().toDateString();
 
   return (
-    <div 
+    <div
       className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-600/60 p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 cursor-pointer group min-w-0 overflow-hidden relative"
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
       {/* Action buttons - shown on hover */}
-      <div className={`absolute top-2 right-2 flex items-center space-x-1 transition-all duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}>
+      <div
+        className={`absolute top-2 right-2 flex items-center space-x-1 transition-all duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}
+      >
         <button
           onClick={handleEdit}
           className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200"
@@ -146,8 +150,8 @@ export default function TaskCard({
                   isOverdue
                     ? 'bg-red-500/10 text-red-700 dark:text-red-300'
                     : isToday
-                    ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                    : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+                      ? 'bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                      : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
                 }`}
               >
                 <IconCalendar className="w-3 h-3" />
