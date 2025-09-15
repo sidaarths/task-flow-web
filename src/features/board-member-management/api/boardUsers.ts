@@ -4,13 +4,10 @@ import type { User } from '@/types';
 import { getErrorMessage } from '@/utils/errorHandler';
 
 const getUserById = async (userId: string): Promise<User> => {
-    try {
-      const response = await httpClient.get(`${API_ROUTES.USERS}/${userId}`);
-      return response.data;
-    } catch {
-      throw new Error('Failed to fetch user details');
-    }
-  };
+  const response = await httpClient.get(`${API_ROUTES.USERS}/${userId}`);
+  return response.data;
+};
+
 export const boardApi = {
   async inviteUserToBoard(boardId: string, userId: string): Promise<void> {
     try {
@@ -42,8 +39,8 @@ export const boardApi = {
       }
 
       return members;
-    } catch {
-      throw new Error('Failed to fetch board members');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 };

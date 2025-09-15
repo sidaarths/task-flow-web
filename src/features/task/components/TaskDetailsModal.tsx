@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import { useMemo } from 'react';
 import {
@@ -32,14 +32,28 @@ export default function TaskDetailsModal({
   };
 
   const now = useMemo(() => new Date(), []);
-  const dueDateObj = useMemo(() => (task.dueDate ? new Date(task.dueDate) : null), [task.dueDate]);
+  const dueDateObj = useMemo(
+    () => (task.dueDate ? new Date(task.dueDate) : null),
+    [task.dueDate]
+  );
 
   const isOverdue = Boolean(dueDateObj && dueDateObj < now);
-  const isToday = Boolean(dueDateObj && dueDateObj.toDateString() === now.toDateString());
+  const isToday = Boolean(
+    dueDateObj && dueDateObj.toDateString() === now.toDateString()
+  );
 
-  const formattedDueDate = useMemo(() => formatDate(task.dueDate), [task.dueDate]);
-  const formattedCreatedAt = useMemo(() => formatDate(task.createdAt), [task.createdAt]);
-  const formattedUpdatedAt = useMemo(() => formatDate(task.updatedAt), [task.updatedAt]);
+  const formattedDueDate = useMemo(
+    () => formatDate(task.dueDate),
+    [task.dueDate]
+  );
+  const formattedCreatedAt = useMemo(
+    () => formatDate(task.createdAt),
+    [task.createdAt]
+  );
+  const formattedUpdatedAt = useMemo(
+    () => formatDate(task.updatedAt),
+    [task.updatedAt]
+  );
 
   if (!isOpen) return null;
 

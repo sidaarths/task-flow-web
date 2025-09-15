@@ -133,7 +133,7 @@ export default function DatePicker({
     const days: dayjs.Dayjs[] = [];
     const diff = lastDayOfWeek.diff(firstDayOfWeek, 'day');
     let daysCount = diff + 1; // inclusive
-    const MAX_DAYS = 42;
+    const MAX_DAYS = 42; // 6 weeks × 7 day
 
     if (daysCount < 0) daysCount = 0;
     if (daysCount > MAX_DAYS) daysCount = MAX_DAYS;
