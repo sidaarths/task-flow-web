@@ -6,11 +6,7 @@ import React, {
   useReducer,
   useCallback,
 } from 'react';
-import type {
-  BoardWithListsAndTasks,
-  List,
-  Task,
-} from '@/types';
+import type { BoardWithListsAndTasks, List, Task } from '@/types';
 import { boardApi } from '@/features/board/api/board';
 
 interface BoardState {

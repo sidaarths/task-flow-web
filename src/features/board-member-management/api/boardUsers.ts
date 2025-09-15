@@ -1,8 +1,6 @@
 import { API_ROUTES } from '@/config/apiConfig';
 import httpClient from '@/config/httpClient';
-import type {
-  User
-} from '@/types';
+import type { User } from '@/types';
 import { getUserById } from '@/api/user';
 
 export const boardApi = {

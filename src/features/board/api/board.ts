@@ -1,10 +1,6 @@
 import { API_ROUTES } from '@/config/apiConfig';
 import httpClient from '@/config/httpClient';
-import type {
-  List,
-  BoardWithListsAndTasks,
-  CreateListRequest,
-} from '@/types';
+import type { List, BoardWithListsAndTasks, CreateListRequest } from '@/types';
 
 export const boardApi = {
   async getBoardWithListsAndTasks(
@@ -29,5 +25,4 @@ export const boardApi = {
       throw new Error('Failed to create list');
     }
   },
-
 };
