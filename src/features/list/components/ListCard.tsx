@@ -16,6 +16,8 @@ import {
   TaskDeleteModal,
 } from '@/features/task';
 import { useBoard } from '@/context/BoardContext';
+import { listApi } from '@/features/list/api/list';
+import { taskApi } from '@/features/task/api/task';
 
 interface ListCardProps {
   list: List;
@@ -34,7 +36,7 @@ export default function ListCard({
   searchQuery,
   totalTasksInList,
 }: ListCardProps) {
-  const { createTask, updateTask, deleteTask } = useBoard();
+  const { addTask, updateTask, deleteTask } = useBoard();
   const [showMenu, setShowMenu] = useState(false);
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -67,7 +69,8 @@ export default function ListCard({
     }
   ) => {
     try {
-      await updateTask(taskId, data);
+      const updatedTask = await taskApi.updateTask(taskId, data);
+      updateTask(updatedTask);
     } catch (error) {
       console.error('Failed to update task:', error);
     }
@@ -75,7 +78,8 @@ export default function ListCard({
 
   const handleDeleteTask = async (taskId: string) => {
     try {
-      await deleteTask(taskId);
+      await taskApi.deleteTask(taskId);
+      deleteTask(taskId);
     } catch (error) {
       console.error('Failed to delete task:', error);
     }
@@ -208,7 +212,8 @@ export default function ListCard({
         isOpen={showCreateTaskModal}
         onClose={() => setShowCreateTaskModal(false)}
         onCreate={async (data) => {
-          await createTask(list._id, data);
+          const newTask = await listApi.createTask(list._id, data);
+          addTask(newTask);
           setShowCreateTaskModal(false);
         }}
         listTitle={list.title}

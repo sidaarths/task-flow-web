@@ -10,12 +10,8 @@ import type {
   BoardWithListsAndTasks,
   List,
   Task,
-  CreateTaskRequest,
-  UpdateTaskRequest,
 } from '@/types';
 import { boardApi } from '@/features/board/api/board';
-import { listApi } from '@/features/list/api/list';
-import { taskApi } from '@/features/task/api/task';
 
 interface BoardState {
   boardData: BoardWithListsAndTasks | null;
@@ -148,18 +144,23 @@ interface BoardContextType {
 
   // Board actions
   fetchBoardData: (boardId: string) => Promise<void>;
-  addBoardMembers: (boardId: string, userIds: string[]) => Promise<void>;
-  removeBoardMember: (boardId: string, userId: string) => Promise<void>;
+  setBoardData: (data: BoardWithListsAndTasks) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string) => void;
 
   // List actions
-  createList: (boardId: string, title: string) => Promise<void>;
-  updateList: (listId: string, title: string) => Promise<void>;
-  deleteList: (listId: string) => Promise<void>;
+  addList: (list: List) => void;
+  updateList: (list: List) => void;
+  deleteList: (listId: string) => void;
 
   // Task actions
-  createTask: (listId: string, data: CreateTaskRequest) => Promise<void>;
-  updateTask: (taskId: string, data: UpdateTaskRequest) => Promise<void>;
-  deleteTask: (taskId: string) => Promise<void>;
+  addTask: (task: Task) => void;
+  updateTask: (task: Task) => void;
+  deleteTask: (taskId: string) => void;
+
+  // Board member actions
+  addBoardMembers: (userIds: string[]) => void;
+  removeBoardMember: (userId: string) => void;
 }
 
 const BoardContext = createContext<BoardContextType | undefined>(undefined);
@@ -183,7 +184,6 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     error: '',
   });
 
-  // Board actions
   const fetchBoardData = useCallback(async (boardId: string) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -199,93 +199,48 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const addBoardMembers = useCallback(
-    async (boardId: string, userIds: string[]) => {
-      try {
-        // Invite each user individually as the API expects single user invites
-        for (const userId of userIds) {
-          await boardApi.inviteUserToBoard(boardId, userId);
-        }
-        dispatch({ type: 'ADD_BOARD_MEMBERS', payload: userIds });
-      } catch (error) {
-        throw error;
-      }
-    },
-    []
-  );
-
-  const removeBoardMember = useCallback(
-    async (boardId: string, userId: string) => {
-      try {
-        await boardApi.removeMemberFromBoard(boardId, userId);
-        dispatch({ type: 'REMOVE_BOARD_MEMBER', payload: userId });
-      } catch (error) {
-        throw error;
-      }
-    },
-    []
-  );
-
-  // List actions
-  const createList = useCallback(async (boardId: string, title: string) => {
-    try {
-      const newList = await boardApi.createList(boardId, { title });
-      dispatch({ type: 'ADD_LIST', payload: newList });
-    } catch (error) {
-      throw error;
-    }
+  const setBoardData = useCallback((data: BoardWithListsAndTasks) => {
+    dispatch({ type: 'SET_BOARD_DATA', payload: data });
   }, []);
 
-  const updateList = useCallback(async (listId: string, title: string) => {
-    try {
-      const updatedList = await listApi.updateList(listId, { title });
-      dispatch({ type: 'UPDATE_LIST', payload: updatedList });
-    } catch (error) {
-      throw error;
-    }
+  const setLoading = useCallback((loading: boolean) => {
+    dispatch({ type: 'SET_LOADING', payload: loading });
   }, []);
 
-  const deleteList = useCallback(async (listId: string) => {
-    try {
-      await listApi.deleteList(listId);
-      dispatch({ type: 'DELETE_LIST', payload: listId });
-    } catch (error) {
-      throw error;
-    }
+  const setError = useCallback((error: string) => {
+    dispatch({ type: 'SET_ERROR', payload: error });
   }, []);
 
-  // Task actions
-  const createTask = useCallback(
-    async (listId: string, data: CreateTaskRequest) => {
-      try {
-        const newTask = await listApi.createTask(listId, data);
-        dispatch({ type: 'ADD_TASK', payload: newTask });
-      } catch (error) {
-        throw error;
-      }
-    },
-    []
-  );
+  const addList = useCallback((list: List) => {
+    dispatch({ type: 'ADD_LIST', payload: list });
+  }, []);
 
-  const updateTask = useCallback(
-    async (taskId: string, data: UpdateTaskRequest) => {
-      try {
-        const updatedTask = await taskApi.updateTask(taskId, data);
-        dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
-      } catch (error) {
-        throw error;
-      }
-    },
-    []
-  );
+  const updateList = useCallback((list: List) => {
+    dispatch({ type: 'UPDATE_LIST', payload: list });
+  }, []);
 
-  const deleteTask = useCallback(async (taskId: string) => {
-    try {
-      await taskApi.deleteTask(taskId);
-      dispatch({ type: 'DELETE_TASK', payload: taskId });
-    } catch (error) {
-      throw error;
-    }
+  const deleteList = useCallback((listId: string) => {
+    dispatch({ type: 'DELETE_LIST', payload: listId });
+  }, []);
+
+  const addTask = useCallback((task: Task) => {
+    dispatch({ type: 'ADD_TASK', payload: task });
+  }, []);
+
+  const updateTask = useCallback((task: Task) => {
+    dispatch({ type: 'UPDATE_TASK', payload: task });
+  }, []);
+
+  const deleteTask = useCallback((taskId: string) => {
+    dispatch({ type: 'DELETE_TASK', payload: taskId });
+  }, []);
+
+  const addBoardMembers = useCallback((userIds: string[]) => {
+    dispatch({ type: 'ADD_BOARD_MEMBERS', payload: userIds });
+  }, []);
+
+  const removeBoardMember = useCallback((userId: string) => {
+    dispatch({ type: 'REMOVE_BOARD_MEMBER', payload: userId });
   }, []);
 
   const contextValue: BoardContextType = {
@@ -296,18 +251,23 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
     // Board actions
     fetchBoardData,
-    addBoardMembers,
-    removeBoardMember,
+    setBoardData,
+    setLoading,
+    setError,
 
     // List actions
-    createList,
+    addList,
     updateList,
     deleteList,
 
     // Task actions
-    createTask,
+    addTask,
     updateTask,
     deleteTask,
+
+    // Board member actions
+    addBoardMembers,
+    removeBoardMember,
   };
 
   return (

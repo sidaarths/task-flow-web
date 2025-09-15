@@ -10,7 +10,7 @@ import {
   IconAlertCircle,
 } from '@tabler/icons-react';
 import { User, Board } from '@/types';
-import { boardApi } from '../api/board';
+import { boardApi } from '../api/boardUsers';
 import { useAuth } from '@/context/AuthContext';
 
 interface BoardMembersModalProps {

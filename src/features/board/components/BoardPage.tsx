@@ -13,6 +13,8 @@ import {
 import type { List, Task } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useBoard } from '@/context/BoardContext';
+import { boardApi } from '@/features/board/api/board';
+import { listApi } from '@/features/list/api/list';
 import {
   InviteUsersModal,
   BoardMembersModal,
@@ -33,7 +35,7 @@ export default function BoardPage() {
     loading,
     error,
     fetchBoardData,
-    createList,
+    addList,
     updateList,
     deleteList,
     addBoardMembers,
@@ -65,7 +67,8 @@ export default function BoardPage() {
   const handleCreateList = async (title: string) => {
     try {
       setIsCreatingList(true);
-      await createList(boardId, title);
+      const newList = await boardApi.createList(boardId, { title });
+      addList(newList);
     } catch (error) {
       throw error;
     } finally {
@@ -81,7 +84,8 @@ export default function BoardPage() {
   const handleUpdateList = async (listId: string, title: string) => {
     try {
       setIsUpdatingList(true);
-      await updateList(listId, title);
+      const updatedList = await listApi.updateList(listId, { title });
+      updateList(updatedList);
     } catch (error) {
       throw error;
     } finally {
@@ -97,7 +101,8 @@ export default function BoardPage() {
   const handleConfirmDeleteList = async (listId: string) => {
     try {
       setIsDeletingList(true);
-      await deleteList(listId);
+      await listApi.deleteList(listId);
+      deleteList(listId);
     } catch (error) {
       throw error;
     } finally {
@@ -107,7 +112,7 @@ export default function BoardPage() {
 
   const handleMembersAdded = async (newMemberIds: string[]) => {
     try {
-      await addBoardMembers(boardId, newMemberIds);
+      addBoardMembers(newMemberIds);
     } catch (error) {
       console.error('Failed to add members:', error);
     }
@@ -115,7 +120,7 @@ export default function BoardPage() {
 
   const handleMemberRemoved = async (removedUserId: string) => {
     try {
-      await removeBoardMember(boardId, removedUserId);
+      removeBoardMember(removedUserId);
     } catch (error) {
       console.error('Failed to remove member:', error);
     }
