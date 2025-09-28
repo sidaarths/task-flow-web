@@ -6,7 +6,10 @@ import {
   IconUser,
   IconEdit,
   IconTrash,
+  IconEye,
 } from '@tabler/icons-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Task } from '@/types';
 
 interface TaskCardProps {
@@ -25,6 +28,19 @@ export default function TaskCard({
   searchQuery,
 }: TaskCardProps) {
   const [showActions, setShowActions] = useState(false);
+
+  // Sortable functionality
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+  } = useSortable({
+    id: task._id,
+  });
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return null;
@@ -64,21 +80,48 @@ export default function TaskCard({
     onDelete(task);
   };
 
+  const handleDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenDetails();
+  };
+
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
   const isToday =
     task.dueDate &&
     new Date(task.dueDate).toDateString() === new Date().toDateString();
 
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
     <div
-      className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-600/60 p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 cursor-pointer group min-w-0 overflow-hidden relative"
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`bg-white dark:bg-gray-700 rounded-lg shadow-sm border p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 group min-w-0 overflow-hidden relative cursor-grab active:cursor-grabbing ${
+        isDragging
+          ? 'opacity-50 shadow-lg ring-2 ring-blue-500 ring-opacity-50 z-50 border-gray-200/60 dark:border-gray-600/60'
+          : isOver
+            ? 'border-blue-500 border-2 shadow-lg ring-2 ring-blue-500 ring-opacity-30'
+            : 'border-gray-200/60 dark:border-gray-600/60'
+      }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Action buttons - shown on hover */}
+      {/* Action buttons */}
       <div
         className={`absolute top-2 right-2 flex items-center space-x-1 transition-all duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}
       >
+        <button
+          onClick={handleDetails}
+          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all duration-200"
+          title="View details"
+        >
+          <IconEye className="w-4 h-4" />
+        </button>
         <button
           onClick={handleEdit}
           className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200"
@@ -95,7 +138,7 @@ export default function TaskCard({
         </button>
       </div>
 
-      <div className="space-y-3" onClick={onOpenDetails}>
+      <div className="space-y-3">
         {/* Title */}
         <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-tight break-words pr-12">
           {highlightText(task.title, searchQuery)}

@@ -10,6 +10,18 @@ import {
   IconClipboardText,
   IconUserPlus,
 } from '@tabler/icons-react';
+import {
+  DndContext,
+  DragOverlay,
+  rectIntersection,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { List, Task } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useBoard } from '@/context/BoardContext';
@@ -40,6 +52,7 @@ export default function BoardPage() {
     deleteList,
     addBoardMembers,
     removeBoardMember,
+    moveTask,
   } = useBoard();
 
   const boardId = params.boardId as string;
@@ -57,6 +70,21 @@ export default function BoardPage() {
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [isUpdatingList, setIsUpdatingList] = useState(false);
   const [isDeletingList, setIsDeletingList] = useState(false);
+
+  // Drag and drop states
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     if (boardId) {
@@ -123,6 +151,78 @@ export default function BoardPage() {
       removeBoardMember(removedUserId);
     } catch (error) {
       console.error('Failed to remove member:', error);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const taskId = active.id as string;
+
+    // Find the task being dragged
+    const task = boardData?.tasks.find((t) => t._id === taskId);
+    if (task) {
+      setActiveTask(task);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    setActiveTask(null);
+
+    if (!over || !boardData) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const draggedTask = boardData.tasks.find((t) => t._id === activeId);
+    if (!draggedTask) return;
+
+    // Determine target list ID
+    let targetListId: string;
+    let targetPosition: number;
+
+    if (overId.startsWith('list-')) {
+      // Dropped on a list container
+      targetListId = overId.replace('list-', '');
+      const tasksInTargetList = boardData.tasks.filter(
+        (t) => t.listId === targetListId
+      );
+      targetPosition = tasksInTargetList.length;
+    } else {
+      // Dropped on another task
+      const targetTask = boardData.tasks.find((t) => t._id === overId);
+      if (!targetTask) return;
+
+      targetListId = targetTask.listId;
+      const tasksInList = boardData.tasks
+        .filter((t) => t.listId === targetListId)
+        .sort((a, b) => a.position - b.position);
+
+      targetPosition = tasksInList.findIndex((t) => t._id === overId);
+    }
+
+    // If nothing changed, return
+    if (
+      draggedTask.listId === targetListId &&
+      draggedTask.position === targetPosition
+    ) {
+      return;
+    }
+
+    // Optimistically update the UI first
+    moveTask(activeId, targetListId, targetPosition);
+
+    try {
+      const { taskApi } = await import('@/features/task/api/task');
+
+      // Update task position/list on the server
+      await taskApi.updateTaskPosition(activeId, targetPosition, targetListId);
+    } catch (error) {
+      console.error('Failed to move task:', error);
+      // If the API call fails, refresh the board data to revert the optimistic update
+      await fetchBoardData(boardId);
     }
   };
 
@@ -269,46 +369,69 @@ export default function BoardPage() {
 
       {/* Board Content */}
       <div className="p-6">
-        <div
-          className="grid gap-3 pb-6 w-full"
-          style={{
-            gridTemplateColumns:
-              sortedLists.length > 0
-                ? `repeat(${sortedLists.length}, 1fr)`
-                : '1fr',
-          }}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={rectIntersection}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
-          {sortedLists.map((list) => (
-            <ListCard
-              key={list._id}
-              list={list}
-              tasks={getTasksForList(list._id)}
-              onEditList={handleEditList}
-              onDeleteList={handleDeleteList}
-              searchQuery={searchQuery}
-              totalTasksInList={getTotalTasksForList(list._id)}
-            />
-          ))}
+          <div
+            className="grid gap-3 pb-6 w-full"
+            style={{
+              gridTemplateColumns:
+                sortedLists.length > 0
+                  ? `repeat(${sortedLists.length}, 1fr)`
+                  : '1fr',
+            }}
+          >
+            {sortedLists.map((list) => (
+              <ListCard
+                key={list._id}
+                list={list}
+                tasks={getTasksForList(list._id)}
+                onEditList={handleEditList}
+                onDeleteList={handleDeleteList}
+                searchQuery={searchQuery}
+                totalTasksInList={getTotalTasksForList(list._id)}
+              />
+            ))}
 
-          {sortedLists.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <IconClipboardText className="w-16 h-16 text-gray-400 dark:text-gray-500 mb-4 mx-auto" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No lists yet
-              </h3>
-              <p className="text-gray-600/80 dark:text-gray-400/80 mb-6 max-w-sm">
-                Create your first list to start organizing tasks for this board.
-              </p>
-              <button
-                onClick={() => setShowCreateListModal(true)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
-              >
-                <IconPlus className="w-5 h-5" />
-                <span>Create Your First List</span>
-              </button>
-            </div>
-          )}
-        </div>
+            {sortedLists.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <IconClipboardText className="w-16 h-16 text-gray-400 dark:text-gray-500 mb-4 mx-auto" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  No lists yet
+                </h3>
+                <p className="text-gray-600/80 dark:text-gray-400/80 mb-6 max-w-sm">
+                  Create your first list to start organizing tasks for this
+                  board.
+                </p>
+                <button
+                  onClick={() => setShowCreateListModal(true)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
+                >
+                  <IconPlus className="w-5 h-5" />
+                  <span>Create Your First List</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <DragOverlay>
+            {activeTask ? (
+              <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg border-2 border-blue-500 p-4 opacity-90 transform rotate-2">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  {activeTask.title}
+                </h4>
+                {activeTask.description && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                    {activeTask.description}
+                  </p>
+                )}
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       {/* Modals */}

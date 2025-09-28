@@ -55,17 +55,6 @@ export const taskApi = {
     }
   },
 
-  async moveTask(taskId: string, listId: string): Promise<Task> {
-    try {
-      const response = await httpClient.put(
-        `${API_ROUTES.TASKS}/${taskId}/lists/${listId}`
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  },
-
   async updateTaskPosition(
     taskId: string,
     position: number,

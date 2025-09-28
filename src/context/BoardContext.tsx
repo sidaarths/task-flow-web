@@ -25,6 +25,10 @@ type BoardAction =
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'DELETE_TASK'; payload: string }
+  | {
+      type: 'MOVE_TASK';
+      payload: { taskId: string; targetListId: string; targetPosition: number };
+    }
   | { type: 'ADD_BOARD_MEMBERS'; payload: string[] }
   | { type: 'REMOVE_BOARD_MEMBER'; payload: string };
 
@@ -101,6 +105,47 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
           ),
         },
       };
+    case 'MOVE_TASK':
+      if (!state.boardData) return state;
+      const { taskId, targetListId, targetPosition } = action.payload;
+
+      // Find the task being moved
+      const taskToMove = state.boardData.tasks.find((t) => t._id === taskId);
+      if (!taskToMove) return state;
+
+      // Update task's listId and position
+      const updatedTask = {
+        ...taskToMove,
+        listId: targetListId,
+        position: targetPosition,
+      };
+
+      // Get all tasks in the target list (excluding the moved task)
+      const targetListTasks = state.boardData.tasks
+        .filter((t) => t.listId === targetListId && t._id !== taskId)
+        .sort((a, b) => a.position - b.position);
+
+      // Insert the moved task at the target position and update positions
+      targetListTasks.splice(targetPosition, 0, updatedTask);
+
+      // Update positions for all tasks in the target list
+      const updatedTargetTasks = targetListTasks.map((task, index) => ({
+        ...task,
+        position: index,
+      }));
+
+      // Get all other tasks (not in target list and not the moved task)
+      const otherTasks = state.boardData.tasks.filter(
+        (t) => t.listId !== targetListId && t._id !== taskId
+      );
+
+      return {
+        ...state,
+        boardData: {
+          ...state.boardData,
+          tasks: [...otherTasks, ...updatedTargetTasks],
+        },
+      };
     case 'ADD_BOARD_MEMBERS':
       if (!state.boardData) return state;
       return {
@@ -153,6 +198,11 @@ interface BoardContextType {
   addTask: (task: Task) => void;
   updateTask: (task: Task) => void;
   deleteTask: (taskId: string) => void;
+  moveTask: (
+    taskId: string,
+    targetListId: string,
+    targetPosition: number
+  ) => void;
 
   // Board member actions
   addBoardMembers: (userIds: string[]) => void;
@@ -231,6 +281,16 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     dispatch({ type: 'DELETE_TASK', payload: taskId });
   }, []);
 
+  const moveTask = useCallback(
+    (taskId: string, targetListId: string, targetPosition: number) => {
+      dispatch({
+        type: 'MOVE_TASK',
+        payload: { taskId, targetListId, targetPosition },
+      });
+    },
+    []
+  );
+
   const addBoardMembers = useCallback((userIds: string[]) => {
     dispatch({ type: 'ADD_BOARD_MEMBERS', payload: userIds });
   }, []);
@@ -260,6 +320,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     addTask,
     updateTask,
     deleteTask,
+    moveTask,
 
     // Board member actions
     addBoardMembers,
