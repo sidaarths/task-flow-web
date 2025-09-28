@@ -6,6 +6,7 @@ import {
   IconUser,
   IconEdit,
   IconTrash,
+  IconEye,
 } from '@tabler/icons-react';
 import type { Task } from '@/types';
 
@@ -64,6 +65,11 @@ export default function TaskCard({
     onDelete(task);
   };
 
+  const handleDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpenDetails();
+  };
+
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
   const isToday =
     task.dueDate &&
@@ -71,7 +77,7 @@ export default function TaskCard({
 
   return (
     <div
-      className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-600/60 p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 cursor-pointer group min-w-0 overflow-hidden relative"
+      className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-600/60 p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 group min-w-0 overflow-hidden relative"
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -79,6 +85,13 @@ export default function TaskCard({
       <div
         className={`absolute top-2 right-2 flex items-center space-x-1 transition-all duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}
       >
+        <button
+          onClick={handleDetails}
+          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-md transition-all duration-200"
+          title="View details"
+        >
+          <IconEye className="w-4 h-4" />
+        </button>
         <button
           onClick={handleEdit}
           className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200"
@@ -95,7 +108,7 @@ export default function TaskCard({
         </button>
       </div>
 
-      <div className="space-y-3" onClick={onOpenDetails}>
+      <div className="space-y-3">
         {/* Title */}
         <h4 className="text-sm font-medium text-gray-900 dark:text-white leading-tight break-words pr-12">
           {highlightText(task.title, searchQuery)}
