@@ -8,6 +8,8 @@ import {
   IconTrash,
   IconEye,
 } from '@tabler/icons-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Task } from '@/types';
 
 interface TaskCardProps {
@@ -26,6 +28,19 @@ export default function TaskCard({
   searchQuery,
 }: TaskCardProps) {
   const [showActions, setShowActions] = useState(false);
+
+  // Sortable functionality
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver
+  } = useSortable({
+    id: task._id,
+  });
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return null;
@@ -75,13 +90,28 @@ export default function TaskCard({
     task.dueDate &&
     new Date(task.dueDate).toDateString() === new Date().toDateString();
 
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
     <div
-      className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-600/60 p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 group min-w-0 overflow-hidden relative"
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`bg-white dark:bg-gray-700 rounded-lg shadow-sm border p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 group min-w-0 overflow-hidden relative cursor-grab active:cursor-grabbing ${
+        isDragging 
+          ? 'opacity-50 shadow-lg ring-2 ring-blue-500 ring-opacity-50 z-50 border-gray-200/60 dark:border-gray-600/60' 
+          : isOver
+            ? 'border-blue-500 border-2 shadow-lg ring-2 ring-blue-500 ring-opacity-30'
+            : 'border-gray-200/60 dark:border-gray-600/60'
+      }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Action buttons - shown on hover */}
+      {/* Action buttons */}
       <div
         className={`absolute top-2 right-2 flex items-center space-x-1 transition-all duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}
       >

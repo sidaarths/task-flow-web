@@ -7,6 +7,8 @@ import {
   IconTrash,
   IconPlus,
 } from '@tabler/icons-react';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { List, Task } from '@/types';
 import TaskCard from '@/features/task';
 import {
@@ -34,7 +36,7 @@ export default function ListCard({
   onEditList,
   onDeleteList,
   searchQuery,
-  totalTasksInList,
+  totalTasksInList
 }: ListCardProps) {
   const { addTask, updateTask, deleteTask } = useBoard();
   const [showMenu, setShowMenu] = useState(false);
@@ -43,6 +45,11 @@ export default function ListCard({
   const [showTaskDetails, setShowTaskDetails] = useState(false);
   const [showTaskEditModal, setShowTaskEditModal] = useState(false);
   const [showTaskDeleteModal, setShowTaskDeleteModal] = useState(false);
+
+  // Droppable functionality
+  const { isOver, setNodeRef } = useDroppable({
+    id: `list-${list._id}`,
+  });
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -86,9 +93,17 @@ export default function ListCard({
   };
 
   const sortedTasks = [...tasks].sort((a, b) => a.position - b.position);
+  const taskIds = sortedTasks.map((task) => task._id);
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200/60 dark:border-gray-700/60 w-full min-w-0 overflow-hidden">
+    <div 
+      ref={setNodeRef}
+      className={`bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border w-full min-w-0 overflow-hidden transition-all duration-200 ${
+        isOver 
+          ? 'border-blue-500 border-2 shadow-lg ring-2 ring-blue-500 ring-opacity-30' 
+          : 'border-gray-200/60 dark:border-gray-700/60'
+      }`}
+    >
       {/* List Header */}
       <div className="p-3 border-b border-gray-200/60 dark:border-gray-700/60">
         <div className="flex items-start justify-between">
@@ -148,16 +163,18 @@ export default function ListCard({
 
       {/* Tasks */}
       <div className="p-3 space-y-2">
-        {sortedTasks.map((task) => (
-          <TaskCard
-            key={task._id}
-            task={task}
-            onEdit={handleTaskEdit}
-            onDelete={handleTaskDelete}
-            onOpenDetails={() => handleTaskClick(task)}
-            searchQuery={searchQuery}
-          />
-        ))}
+        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+          {sortedTasks.map((task) => (
+            <TaskCard
+              key={task._id}
+              task={task}
+              onEdit={handleTaskEdit}
+              onDelete={handleTaskDelete}
+              onOpenDetails={() => handleTaskClick(task)}
+              searchQuery={searchQuery}
+            />
+          ))}
+        </SortableContext>
 
         {/* Create Task Quick Form */}
         <button
