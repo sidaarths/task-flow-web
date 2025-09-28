@@ -37,7 +37,7 @@ export default function TaskCard({
     transform,
     transition,
     isDragging,
-    isOver
+    isOver,
   } = useSortable({
     id: task._id,
   });
@@ -102,8 +102,8 @@ export default function TaskCard({
       {...attributes}
       {...listeners}
       className={`bg-white dark:bg-gray-700 rounded-lg shadow-sm border p-4 hover:shadow-md hover:scale-[1.01] transition-all duration-200 group min-w-0 overflow-hidden relative cursor-grab active:cursor-grabbing ${
-        isDragging 
-          ? 'opacity-50 shadow-lg ring-2 ring-blue-500 ring-opacity-50 z-50 border-gray-200/60 dark:border-gray-600/60' 
+        isDragging
+          ? 'opacity-50 shadow-lg ring-2 ring-blue-500 ring-opacity-50 z-50 border-gray-200/60 dark:border-gray-600/60'
           : isOver
             ? 'border-blue-500 border-2 shadow-lg ring-2 ring-blue-500 ring-opacity-30'
             : 'border-gray-200/60 dark:border-gray-600/60'

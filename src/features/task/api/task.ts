@@ -54,7 +54,7 @@ export const taskApi = {
       throw new Error(getErrorMessage(error));
     }
   },
-  
+
   async updateTaskPosition(
     taskId: string,
     position: number,

@@ -19,11 +19,9 @@ import {
   useSensor,
   useSensors,
   DragStartEvent,
-  DragEndEvent
+  DragEndEvent,
 } from '@dnd-kit/core';
-import {
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { List, Task } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useBoard } from '@/context/BoardContext';
@@ -160,7 +158,7 @@ export default function BoardPage() {
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const taskId = active.id as string;
-    
+
     // Find the task being dragged
     const task = boardData?.tasks.find((t) => t._id === taskId);
     if (task) {
@@ -170,7 +168,7 @@ export default function BoardPage() {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     setActiveTask(null);
 
     if (!over || !boardData) return;
@@ -196,17 +194,20 @@ export default function BoardPage() {
       // Dropped on another task
       const targetTask = boardData.tasks.find((t) => t._id === overId);
       if (!targetTask) return;
-      
+
       targetListId = targetTask.listId;
       const tasksInList = boardData.tasks
         .filter((t) => t.listId === targetListId)
         .sort((a, b) => a.position - b.position);
-      
+
       targetPosition = tasksInList.findIndex((t) => t._id === overId);
     }
 
     // If nothing changed, return
-    if (draggedTask.listId === targetListId && draggedTask.position === targetPosition) {
+    if (
+      draggedTask.listId === targetListId &&
+      draggedTask.position === targetPosition
+    ) {
       return;
     }
 
@@ -214,9 +215,8 @@ export default function BoardPage() {
     moveTask(activeId, targetListId, targetPosition);
 
     try {
-      // Import taskApi here to avoid circular dependencies
       const { taskApi } = await import('@/features/task/api/task');
-      
+
       // Update task position/list on the server
       await taskApi.updateTaskPosition(activeId, targetPosition, targetListId);
     } catch (error) {
@@ -403,7 +403,8 @@ export default function BoardPage() {
                   No lists yet
                 </h3>
                 <p className="text-gray-600/80 dark:text-gray-400/80 mb-6 max-w-sm">
-                  Create your first list to start organizing tasks for this board.
+                  Create your first list to start organizing tasks for this
+                  board.
                 </p>
                 <button
                   onClick={() => setShowCreateListModal(true)}

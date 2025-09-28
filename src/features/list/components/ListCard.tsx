@@ -8,7 +8,10 @@ import {
   IconPlus,
 } from '@tabler/icons-react';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import type { List, Task } from '@/types';
 import TaskCard from '@/features/task';
 import {
@@ -36,7 +39,7 @@ export default function ListCard({
   onEditList,
   onDeleteList,
   searchQuery,
-  totalTasksInList
+  totalTasksInList,
 }: ListCardProps) {
   const { addTask, updateTask, deleteTask } = useBoard();
   const [showMenu, setShowMenu] = useState(false);
@@ -96,11 +99,11 @@ export default function ListCard({
   const taskIds = sortedTasks.map((task) => task._id);
 
   return (
-    <div 
+    <div
       ref={setNodeRef}
       className={`bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border w-full min-w-0 overflow-hidden transition-all duration-200 ${
-        isOver 
-          ? 'border-blue-500 border-2 shadow-lg ring-2 ring-blue-500 ring-opacity-30' 
+        isOver
+          ? 'border-blue-500 border-2 shadow-lg ring-2 ring-blue-500 ring-opacity-30'
           : 'border-gray-200/60 dark:border-gray-700/60'
       }`}
     >
