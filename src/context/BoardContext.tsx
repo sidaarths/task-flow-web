@@ -254,18 +254,6 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     joinBoardRef.current = joinBoard;
   }, [leaveBoard, joinBoard]);
 
-  // Update the current board ID when board data changes (fallback tracking)
-  useEffect(() => {
-    if (state.boardData) {
-      const newBoardId = state.boardData.board._id;
-      if (currentBoardIdRef.current !== newBoardId) {
-        currentBoardIdRef.current = newBoardId;
-      }
-    } else {
-      currentBoardIdRef.current = null;
-    }
-  }, [state.boardData]);
-
   // Set up Pusher event listeners
   useEffect(() => {
     if (!currentChannel) return;
@@ -362,24 +350,31 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: '' });
-      
+
       // Leave previous board before loading new one
       const previousBoardId = currentBoardIdRef.current;
       if (previousBoardId && previousBoardId !== boardId) {
-        console.log(`[BoardContext] Switching from board ${previousBoardId} to ${boardId}`);
+        console.log(
+          `[BoardContext] Switching from board ${previousBoardId} to ${boardId}`
+        );
         leaveBoardRef.current(previousBoardId);
       }
-      
+
       const data = await boardApi.getBoardWithListsAndTasks(boardId);
-      dispatch({ type: 'SET_BOARD_DATA', payload: data });
-      
-      // Join the board channel after loading data
+
+      // Join the board channel before setting data to ensure consistency
       const channel = joinBoardRef.current(boardId);
       if (!channel) {
-        console.warn(`[BoardContext] Failed to join board channel for boardId: ${boardId}`);
+        console.warn(
+          `[BoardContext] Failed to join board channel for boardId: ${boardId}`
+        );
+        currentBoardIdRef.current = boardId;
       } else {
+        // Successfully joined - update ref
         currentBoardIdRef.current = boardId;
       }
+      // Set board data after joining channel (or attempting to)
+      dispatch({ type: 'SET_BOARD_DATA', payload: data });
     } catch (error) {
       dispatch({
         type: 'SET_ERROR',
@@ -390,7 +385,26 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   }, []);
 
   const setBoardData = useCallback((data: BoardWithListsAndTasks) => {
+    const newBoardId = data.board._id;
+    const previousBoardId = currentBoardIdRef.current;
+
+    // If switching to a different board, handle cleanup and joining
+    if (previousBoardId && previousBoardId !== newBoardId) {
+      console.log(
+        `[BoardContext] setBoardData: Switching from ${previousBoardId} to ${newBoardId}`
+      );
+      leaveBoardRef.current(previousBoardId);
+    }
+
     dispatch({ type: 'SET_BOARD_DATA', payload: data });
+
+    // Join the new board if not already joined
+    if (currentBoardIdRef.current !== newBoardId) {
+      const channel = joinBoardRef.current(newBoardId);
+      if (channel) {
+        currentBoardIdRef.current = newBoardId;
+      }
+    }
   }, []);
 
   const setLoading = useCallback((loading: boolean) => {
