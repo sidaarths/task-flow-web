@@ -21,6 +21,7 @@ type BoardAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'SET_BOARD_DATA'; payload: BoardWithListsAndTasks }
+  | { type: 'UPDATE_BOARD'; payload: Board }
   | { type: 'ADD_LIST'; payload: List }
   | { type: 'UPDATE_LIST'; payload: List }
   | { type: 'DELETE_LIST'; payload: string }
@@ -42,6 +43,15 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
       return { ...state, error: action.payload };
     case 'SET_BOARD_DATA':
       return { ...state, boardData: action.payload, loading: false, error: '' };
+    case 'UPDATE_BOARD':
+      if (!state.boardData) return state;
+      return {
+        ...state,
+        boardData: {
+          ...state.boardData,
+          board: action.payload,
+        },
+      };
     case 'ADD_LIST':
       if (!state.boardData) return state;
       return {
@@ -278,15 +288,10 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     // Listen for board events
     const handleBoardUpdated = (board: Board) => {
       console.log('[BoardContext] Board updated:', board);
-      if (state.boardData) {
-        dispatch({
-          type: 'SET_BOARD_DATA',
-          payload: {
-            ...state.boardData,
-            board,
-          },
-        });
-      }
+      dispatch({
+        type: 'UPDATE_BOARD',
+        payload: board,
+      });
     };
 
     const handleBoardMemberAdded = ({ userId }: { userId: string }) => {
