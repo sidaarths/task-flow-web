@@ -245,6 +245,12 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
 
   const { currentChannel, joinBoard, leaveBoard } = useSocket();
   const currentBoardIdRef = useRef<string | null>(null);
+  const leaveBoardRef = useRef(leaveBoard);
+
+  // Keep leaveBoardRef up to date without causing re-renders
+  useEffect(() => {
+    leaveBoardRef.current = leaveBoard;
+  }, [leaveBoard]);
 
   // Update the current board ID when board data changes
   useEffect(() => {
@@ -321,7 +327,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     currentChannel.bind('board:member-added', handleBoardMemberAdded);
     currentChannel.bind('board:member-removed', handleBoardMemberRemoved);
 
-    // Cleanup: unbind listeners and leave room
+    // Cleanup: unbind event listeners
     return () => {
       currentChannel.unbind('list:created', handleListCreated);
       currentChannel.unbind('list:updated', handleListUpdated);
@@ -335,14 +341,14 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     };
   }, [currentChannel]);
 
-  // Cleanup: leave board when component unmounts
+  // Cleanup: leave board when component unmounts or boardId changes
   useEffect(() => {
     return () => {
       if (currentBoardIdRef.current) {
-        leaveBoard(currentBoardIdRef.current);
+        leaveBoardRef.current(currentBoardIdRef.current);
       }
     };
-  }, [leaveBoard]);
+  }, []);
 
   const fetchBoardData = useCallback(async (boardId: string) => {
     try {
@@ -351,13 +357,17 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       
       // Leave previous board before loading new one
       if (currentBoardIdRef.current && currentBoardIdRef.current !== boardId) {
-        leaveBoard(currentBoardIdRef.current);
+        leaveBoardRef.current(currentBoardIdRef.current);
       }
       
       const data = await boardApi.getBoardWithListsAndTasks(boardId);
       dispatch({ type: 'SET_BOARD_DATA', payload: data });
+      
       // Join the board channel after loading data
-      joinBoard(boardId);
+      const channel = joinBoard(boardId);
+      if (!channel) {
+        console.warn(`[BoardContext] Failed to join board channel for boardId: ${boardId}`);
+      }
     } catch (error) {
       dispatch({
         type: 'SET_ERROR',
@@ -365,7 +375,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
           error instanceof Error ? error.message : 'Failed to fetch board data',
       });
     }
-  }, [joinBoard, leaveBoard]);
+  }, [joinBoard]);
 
   const setBoardData = useCallback((data: BoardWithListsAndTasks) => {
     dispatch({ type: 'SET_BOARD_DATA', payload: data });

@@ -5,6 +5,9 @@ import Pusher, { Channel } from 'pusher-js';
 import { useAuth } from './AuthContext';
 import { API_URL } from '@/config/apiConfig';
 
+// Helper function to generate channel name
+const getChannelName = (boardId: string): string => `private-board-${boardId}`;
+
 interface SocketContextType {
   pusher: Pusher | null;
   isConnected: boolean;
@@ -45,8 +48,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
     const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'us2';
 
+    // Validate environment variables
     if (!pusherKey) {
       console.error('[Pusher] NEXT_PUBLIC_PUSHER_KEY not found in environment variables');
+      return;
+    }
+
+    if (!pusherKey.match(/^[a-zA-Z0-9]+$/)) {
+      console.error('[Pusher] Invalid NEXT_PUBLIC_PUSHER_KEY format');
       return;
     }
 
@@ -94,34 +103,42 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return null;
     }
 
-    const channelName = `private-board-${boardId}`;
+    const channelName = getChannelName(boardId);
     
     // Check if already subscribed to this channel
-    const existingChannel = pusher.channel(channelName);
-    if (existingChannel && currentChannel?.name === channelName) {
+    if (currentChannel?.name === channelName) {
       console.log(`[Pusher] Already subscribed to: ${channelName}`);
-      return existingChannel;
+      return currentChannel;
     }
     
-    // Unsubscribe from previous channel if exists
-    if (currentChannel && currentChannel.name !== channelName) {
-      pusher.unsubscribe(currentChannel.name);
-      console.log(`[Pusher] Unsubscribed from: ${currentChannel.name}`);
+    // Unsubscribe from previous channel if exists and clean up state
+    if (currentChannel) {
+      const oldChannelName = currentChannel.name;
+      // Unbind internal event listeners to prevent memory leaks
+      currentChannel.unbind_all();
+      pusher.unsubscribe(oldChannelName);
+      console.log(`[Pusher] Unsubscribed from: ${oldChannelName}`);
     }
 
     // Subscribe to new channel
     const channel = pusher.subscribe(channelName);
     
-    channel.bind('pusher:subscription_succeeded', () => {
+    // Handle subscription events
+    const handleSubscriptionSuccess = () => {
       console.log(`[Pusher] Successfully subscribed to: ${channelName}`);
-    });
+      // Set channel to state only after successful subscription
+      setCurrentChannel(channel);
+    };
 
-    channel.bind('pusher:subscription_error', (error: unknown) => {
+    const handleSubscriptionError = (error: unknown) => {
       console.error(`[Pusher] Subscription error for ${channelName}:`, error);
-    });
+      setCurrentChannel(null);
+    };
 
-    setCurrentChannel(channel);
-    console.log(`[Pusher] Joined board: ${boardId}`);
+    channel.bind('pusher:subscription_succeeded', handleSubscriptionSuccess);
+    channel.bind('pusher:subscription_error', handleSubscriptionError);
+
+    console.log(`[Pusher] Joining board: ${boardId}`);
     return channel;
   }, [pusher, isConnected, currentChannel]);
 
@@ -130,7 +147,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return;
     }
 
-    const channelName = `private-board-${boardId}`;
+    const channelName = getChannelName(boardId);
+    const channel = pusher.channel(channelName);
+    
+    // Unbind all event listeners before unsubscribing to prevent memory leaks
+    if (channel) {
+      channel.unbind_all();
+    }
+    
     pusher.unsubscribe(channelName);
     
     if (currentChannel?.name === channelName) {
