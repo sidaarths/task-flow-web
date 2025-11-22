@@ -47,11 +47,6 @@ export default function BoardPage() {
     loading,
     error,
     fetchBoardData,
-    addList,
-    updateList,
-    deleteList,
-    addBoardMembers,
-    removeBoardMember,
     moveTask,
   } = useBoard();
 
@@ -95,8 +90,7 @@ export default function BoardPage() {
   const handleCreateList = async (title: string) => {
     try {
       setIsCreatingList(true);
-      const newList = await boardApi.createList(boardId, { title });
-      addList(newList);
+      await boardApi.createList(boardId, { title });
     } catch (error) {
       throw error;
     } finally {
@@ -112,8 +106,7 @@ export default function BoardPage() {
   const handleUpdateList = async (listId: string, title: string) => {
     try {
       setIsUpdatingList(true);
-      const updatedList = await listApi.updateList(listId, { title });
-      updateList(updatedList);
+      await listApi.updateList(listId, { title });
     } catch (error) {
       throw error;
     } finally {
@@ -130,27 +123,10 @@ export default function BoardPage() {
     try {
       setIsDeletingList(true);
       await listApi.deleteList(listId);
-      deleteList(listId);
     } catch (error) {
       throw error;
     } finally {
       setIsDeletingList(false);
-    }
-  };
-
-  const handleMembersAdded = async (newMemberIds: string[]) => {
-    try {
-      addBoardMembers(newMemberIds);
-    } catch (error) {
-      console.error('Failed to add members:', error);
-    }
-  };
-
-  const handleMemberRemoved = async (removedUserId: string) => {
-    try {
-      removeBoardMember(removedUserId);
-    } catch (error) {
-      console.error('Failed to remove member:', error);
     }
   };
 
@@ -470,7 +446,6 @@ export default function BoardPage() {
           onClose={() => setShowInviteUsersModal(false)}
           boardId={boardId}
           existingMemberIds={boardData.board.members}
-          onMembersAdded={handleMembersAdded}
         />
       )}
 
@@ -478,7 +453,6 @@ export default function BoardPage() {
         isOpen={showBoardMembersModal}
         onClose={() => setShowBoardMembersModal(false)}
         board={boardData.board}
-        onMemberRemoved={handleMemberRemoved}
       />
     </div>
   );

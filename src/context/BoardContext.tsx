@@ -5,9 +5,11 @@ import React, {
   useContext,
   useReducer,
   useCallback,
+  useEffect,
 } from 'react';
-import type { BoardWithListsAndTasks, List, Task } from '@/types';
+import type { BoardWithListsAndTasks, List, Task, Board } from '@/types';
 import { boardApi } from '@/features/board/api/board';
+import { useSocket } from './SocketContext';
 
 interface BoardState {
   boardData: BoardWithListsAndTasks | null;
@@ -19,6 +21,7 @@ type BoardAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'SET_BOARD_DATA'; payload: BoardWithListsAndTasks }
+  | { type: 'UPDATE_BOARD'; payload: Board }
   | { type: 'ADD_LIST'; payload: List }
   | { type: 'UPDATE_LIST'; payload: List }
   | { type: 'DELETE_LIST'; payload: string }
@@ -40,6 +43,15 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
       return { ...state, error: action.payload };
     case 'SET_BOARD_DATA':
       return { ...state, boardData: action.payload, loading: false, error: '' };
+    case 'UPDATE_BOARD':
+      if (!state.boardData) return state;
+      return {
+        ...state,
+        boardData: {
+          ...state.boardData,
+          board: action.payload,
+        },
+      };
     case 'ADD_LIST':
       if (!state.boardData) return state;
       return {
@@ -229,6 +241,94 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     loading: false,
     error: '',
   });
+
+  const { socket, joinBoard, leaveBoard } = useSocket();
+
+  // Set up WebSocket event listeners
+  useEffect(() => {
+    if (!socket || !state.boardData) return;
+
+    const boardId = state.boardData.board._id;
+
+    // Join the board room when board data is loaded
+    joinBoard(boardId);
+
+    // Listen for list events
+    const handleListCreated = (list: List) => {
+      console.log('[BoardContext] List created:', list);
+      dispatch({ type: 'ADD_LIST', payload: list });
+    };
+
+    const handleListUpdated = (list: List) => {
+      console.log('[BoardContext] List updated:', list);
+      dispatch({ type: 'UPDATE_LIST', payload: list });
+    };
+
+    const handleListDeleted = ({ listId }: { listId: string }) => {
+      console.log('[BoardContext] List deleted:', listId);
+      dispatch({ type: 'DELETE_LIST', payload: listId });
+    };
+
+    // Listen for task events
+    const handleTaskCreated = (task: Task) => {
+      console.log('[BoardContext] Task created:', task);
+      dispatch({ type: 'ADD_TASK', payload: task });
+    };
+
+    const handleTaskUpdated = (task: Task) => {
+      console.log('[BoardContext] Task updated:', task);
+      dispatch({ type: 'UPDATE_TASK', payload: task });
+    };
+
+    const handleTaskDeleted = ({ taskId }: { taskId: string }) => {
+      console.log('[BoardContext] Task deleted:', taskId);
+      dispatch({ type: 'DELETE_TASK', payload: taskId });
+    };
+
+    // Listen for board events
+    const handleBoardUpdated = (board: Board) => {
+      console.log('[BoardContext] Board updated:', board);
+      dispatch({
+        type: 'UPDATE_BOARD',
+        payload: board,
+      });
+    };
+
+    const handleBoardMemberAdded = ({ userId }: { userId: string }) => {
+      console.log('[BoardContext] Board member added:', userId);
+      dispatch({ type: 'ADD_BOARD_MEMBERS', payload: [userId] });
+    };
+
+    const handleBoardMemberRemoved = ({ userId }: { userId: string }) => {
+      console.log('[BoardContext] Board member removed:', userId);
+      dispatch({ type: 'REMOVE_BOARD_MEMBER', payload: userId });
+    };
+
+    // Register event listeners
+    socket.on('list:created', handleListCreated);
+    socket.on('list:updated', handleListUpdated);
+    socket.on('list:deleted', handleListDeleted);
+    socket.on('task:created', handleTaskCreated);
+    socket.on('task:updated', handleTaskUpdated);
+    socket.on('task:deleted', handleTaskDeleted);
+    socket.on('board:updated', handleBoardUpdated);
+    socket.on('board:member-added', handleBoardMemberAdded);
+    socket.on('board:member-removed', handleBoardMemberRemoved);
+
+    // Cleanup: remove listeners and leave room
+    return () => {
+      socket.off('list:created', handleListCreated);
+      socket.off('list:updated', handleListUpdated);
+      socket.off('list:deleted', handleListDeleted);
+      socket.off('task:created', handleTaskCreated);
+      socket.off('task:updated', handleTaskUpdated);
+      socket.off('task:deleted', handleTaskDeleted);
+      socket.off('board:updated', handleBoardUpdated);
+      socket.off('board:member-added', handleBoardMemberAdded);
+      socket.off('board:member-removed', handleBoardMemberRemoved);
+      leaveBoard(boardId);
+    };
+  }, [socket, state.boardData, joinBoard, leaveBoard]);
 
   const fetchBoardData = useCallback(async (boardId: string) => {
     try {
