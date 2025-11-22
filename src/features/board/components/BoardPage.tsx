@@ -91,7 +91,6 @@ export default function BoardPage() {
     try {
       setIsCreatingList(true);
       await boardApi.createList(boardId, { title });
-      // Remove optimistic update - WebSocket will handle it
     } catch (error) {
       throw error;
     } finally {
@@ -108,7 +107,6 @@ export default function BoardPage() {
     try {
       setIsUpdatingList(true);
       await listApi.updateList(listId, { title });
-      // Remove optimistic update - WebSocket will handle it
     } catch (error) {
       throw error;
     } finally {
@@ -125,29 +123,10 @@ export default function BoardPage() {
     try {
       setIsDeletingList(true);
       await listApi.deleteList(listId);
-      // Remove optimistic update - WebSocket will handle it
     } catch (error) {
       throw error;
     } finally {
       setIsDeletingList(false);
-    }
-  };
-
-  const handleMembersAdded = async () => {
-    try {
-      // Remove optimistic update - WebSocket will handle it
-      // The InviteUsersModal already calls the API
-    } catch (error) {
-      console.error('Failed to add members:', error);
-    }
-  };
-
-  const handleMemberRemoved = async () => {
-    try {
-      // Remove optimistic update - WebSocket will handle it
-      // The BoardMembersModal already calls the API
-    } catch (error) {
-      console.error('Failed to remove member:', error);
     }
   };
 
@@ -467,7 +446,6 @@ export default function BoardPage() {
           onClose={() => setShowInviteUsersModal(false)}
           boardId={boardId}
           existingMemberIds={boardData.board.members}
-          onMembersAdded={handleMembersAdded}
         />
       )}
 
@@ -475,7 +453,6 @@ export default function BoardPage() {
         isOpen={showBoardMembersModal}
         onClose={() => setShowBoardMembersModal(false)}
         board={boardData.board}
-        onMemberRemoved={handleMemberRemoved}
       />
     </div>
   );
