@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Pusher, { Channel } from 'pusher-js';
 import { useAuth } from './AuthContext';
 import { API_URL } from '@/config/apiConfig';
@@ -35,6 +35,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const { user } = useAuth();
+  
+  // Use ref to track current channel name to avoid stale closures
+  const currentChannelNameRef = useRef<string | null>(null);
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -54,7 +57,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return;
     }
 
-    if (!pusherKey.match(/^[a-zA-Z0-9]+$/)) {
+    if (!pusherKey.match(/^[a-zA-Z0-9_-]+$/)) {
       console.error('[Pusher] Invalid NEXT_PUBLIC_PUSHER_KEY format');
       return;
     }
@@ -105,17 +108,22 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     const channelName = getChannelName(boardId);
     
-    // Check if already subscribed to this channel
-    if (currentChannel?.name === channelName) {
+    // Check if already subscribed using ref to avoid stale state
+    if (currentChannelNameRef.current === channelName) {
       console.log(`[Pusher] Already subscribed to: ${channelName}`);
       return currentChannel;
     }
     
-    // Unsubscribe from previous channel if exists and clean up state
-    if (currentChannel) {
-      const oldChannelName = currentChannel.name;
-      // Unbind internal event listeners to prevent memory leaks
-      currentChannel.unbind_all();
+    // Unsubscribe from previous channel if exists
+    if (currentChannelNameRef.current) {
+      const oldChannelName = currentChannelNameRef.current;
+      const oldChannel = pusher.channel(oldChannelName);
+      
+      // Unbind all event listeners to prevent memory leaks
+      if (oldChannel) {
+        oldChannel.unbind_all();
+      }
+      
       pusher.unsubscribe(oldChannelName);
       console.log(`[Pusher] Unsubscribed from: ${oldChannelName}`);
     }
@@ -123,16 +131,28 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     // Subscribe to new channel
     const channel = pusher.subscribe(channelName);
     
-    // Handle subscription events
+    // Update ref immediately
+    currentChannelNameRef.current = channelName;
+    
+    // Set channel to state immediately so event listeners can be bound
+    setCurrentChannel(channel);
+    
+    // Handle subscription events for logging and error handling
     const handleSubscriptionSuccess = () => {
       console.log(`[Pusher] Successfully subscribed to: ${channelName}`);
-      // Set channel to state only after successful subscription
-      setCurrentChannel(channel);
+      // Unbind this handler after it fires to prevent memory leaks
+      channel.unbind('pusher:subscription_succeeded', handleSubscriptionSuccess);
     };
 
     const handleSubscriptionError = (error: unknown) => {
       console.error(`[Pusher] Subscription error for ${channelName}:`, error);
-      setCurrentChannel(null);
+      // Clear the channel from state if subscription fails
+      if (currentChannelNameRef.current === channelName) {
+        setCurrentChannel(null);
+        currentChannelNameRef.current = null;
+      }
+      // Unbind this handler after it fires to prevent memory leaks
+      channel.unbind('pusher:subscription_error', handleSubscriptionError);
     };
 
     channel.bind('pusher:subscription_succeeded', handleSubscriptionSuccess);
@@ -157,12 +177,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     
     pusher.unsubscribe(channelName);
     
-    if (currentChannel?.name === channelName) {
+    // Update ref and state
+    if (currentChannelNameRef.current === channelName) {
+      currentChannelNameRef.current = null;
       setCurrentChannel(null);
     }
     
     console.log(`[Pusher] Left board: ${boardId}`);
-  }, [pusher, currentChannel]);
+  }, [pusher]);
 
   const contextValue: SocketContextType = useMemo(() => ({
     pusher,

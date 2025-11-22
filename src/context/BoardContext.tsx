@@ -246,16 +246,21 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   const { currentChannel, joinBoard, leaveBoard } = useSocket();
   const currentBoardIdRef = useRef<string | null>(null);
   const leaveBoardRef = useRef(leaveBoard);
+  const joinBoardRef = useRef(joinBoard);
 
-  // Keep leaveBoardRef up to date without causing re-renders
+  // Keep refs up to date without causing re-renders
   useEffect(() => {
     leaveBoardRef.current = leaveBoard;
-  }, [leaveBoard]);
+    joinBoardRef.current = joinBoard;
+  }, [leaveBoard, joinBoard]);
 
-  // Update the current board ID when board data changes
+  // Update the current board ID when board data changes (fallback tracking)
   useEffect(() => {
     if (state.boardData) {
-      currentBoardIdRef.current = state.boardData.board._id;
+      const newBoardId = state.boardData.board._id;
+      if (currentBoardIdRef.current !== newBoardId) {
+        currentBoardIdRef.current = newBoardId;
+      }
     } else {
       currentBoardIdRef.current = null;
     }
@@ -341,14 +346,17 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     };
   }, [currentChannel]);
 
-  // Cleanup: leave board when component unmounts or boardId changes
+  // Cleanup: leave board when component unmounts
   useEffect(() => {
     return () => {
-      if (currentBoardIdRef.current) {
-        leaveBoardRef.current(currentBoardIdRef.current);
+      // Use the ref to get the current board ID at cleanup time
+      const boardIdToLeave = currentBoardIdRef.current;
+      if (boardIdToLeave) {
+        console.log(`[BoardContext] Cleanup: leaving board ${boardIdToLeave}`);
+        leaveBoardRef.current(boardIdToLeave);
       }
     };
-  }, []);
+  }, []); // Empty deps - cleanup captures the latest refs
 
   const fetchBoardData = useCallback(async (boardId: string) => {
     try {
@@ -356,17 +364,21 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_ERROR', payload: '' });
       
       // Leave previous board before loading new one
-      if (currentBoardIdRef.current && currentBoardIdRef.current !== boardId) {
-        leaveBoardRef.current(currentBoardIdRef.current);
+      const previousBoardId = currentBoardIdRef.current;
+      if (previousBoardId && previousBoardId !== boardId) {
+        console.log(`[BoardContext] Switching from board ${previousBoardId} to ${boardId}`);
+        leaveBoardRef.current(previousBoardId);
       }
       
       const data = await boardApi.getBoardWithListsAndTasks(boardId);
       dispatch({ type: 'SET_BOARD_DATA', payload: data });
       
       // Join the board channel after loading data
-      const channel = joinBoard(boardId);
+      const channel = joinBoardRef.current(boardId);
       if (!channel) {
         console.warn(`[BoardContext] Failed to join board channel for boardId: ${boardId}`);
+      } else {
+        currentBoardIdRef.current = boardId;
       }
     } catch (error) {
       dispatch({
@@ -375,7 +387,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
           error instanceof Error ? error.message : 'Failed to fetch board data',
       });
     }
-  }, [joinBoard]);
+  }, []);
 
   const setBoardData = useCallback((data: BoardWithListsAndTasks) => {
     dispatch({ type: 'SET_BOARD_DATA', payload: data });
