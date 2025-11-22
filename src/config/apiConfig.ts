@@ -4,10 +4,6 @@ export const API_URL = isDev
   ? 'http://localhost:3001/api'
   : 'https://task-flow-api-alpha.vercel.app/api';
 
-export const SOCKET_URL = isDev
-  ? 'http://localhost:3001'
-  : 'https://task-flow-api-alpha.vercel.app';
-
 export const API_ROUTES = {
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',

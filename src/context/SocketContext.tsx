@@ -1,15 +1,16 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { io, Socket } from 'socket.io-client';
+import Pusher, { Channel } from 'pusher-js';
 import { useAuth } from './AuthContext';
-import { SOCKET_URL } from '@/config/apiConfig';
+import { API_URL } from '@/config/apiConfig';
 
 interface SocketContextType {
-  socket: Socket | null;
+  pusher: Pusher | null;
   isConnected: boolean;
-  joinBoard: (boardId: string) => void;
+  joinBoard: (boardId: string) => Channel | null;
   leaveBoard: (boardId: string) => void;
+  currentChannel: Channel | null;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -27,8 +28,9 @@ interface SocketProviderProps {
 }
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [pusher, setPusher] = useState<Pusher | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -39,71 +41,112 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return;
     }
 
-    // Create socket connection
-    const newSocket = io(SOCKET_URL, {
+    // Get Pusher key from environment variable
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'us2';
+
+    if (!pusherKey) {
+      console.error('[Pusher] NEXT_PUBLIC_PUSHER_KEY not found in environment variables');
+      return;
+    }
+
+    // Create Pusher connection
+    const pusherInstance = new Pusher(pusherKey, {
+      cluster: pusherCluster,
+      authEndpoint: `${API_URL}/pusher/auth`,
       auth: {
-        token,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
     });
 
-    newSocket.on('connect', () => {
-      console.log('[Socket] Connected to WebSocket server');
+    pusherInstance.connection.bind('connected', () => {
+      console.log('[Pusher] Connected to Pusher');
       setIsConnected(true);
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('[Socket] Disconnected from WebSocket server');
+    pusherInstance.connection.bind('disconnected', () => {
+      console.log('[Pusher] Disconnected from Pusher');
       setIsConnected(false);
     });
 
-    newSocket.on('connect_error', (error) => {
-      console.error('[Socket] Connection error:', error.message);
+    pusherInstance.connection.bind('error', (error: unknown) => {
+      console.error('[Pusher] Connection error:', error);
       setIsConnected(false);
     });
 
-    newSocket.on('error', (error: { message: string }) => {
-      console.error('[Socket] Socket error:', error.message);
-    });
+    setPusher(pusherInstance);
 
-    newSocket.on('joined-board', ({ boardId }: { boardId: string }) => {
-      console.log(`[Socket] Successfully joined board: ${boardId}`);
-    });
-
-    setSocket(newSocket);
-
-    // Cleanup function handles disconnection properly
+    // Cleanup function
     return () => {
-      console.log('[Socket] Cleaning up socket connection');
-      newSocket.disconnect();
-      setSocket(null);
+      console.log('[Pusher] Cleaning up Pusher connection');
+      pusherInstance.disconnect();
+      setPusher(null);
       setIsConnected(false);
+      setCurrentChannel(null);
     };
   }, [user]);
 
-  const joinBoard = useCallback((boardId: string) => {
-    if (socket && isConnected) {
-      socket.emit('join-board', boardId);
-      console.log(`[Socket] Joined board: ${boardId}`);
+  const joinBoard = useCallback((boardId: string): Channel | null => {
+    if (!pusher || !isConnected) {
+      console.warn('[Pusher] Cannot join board: Pusher not connected');
+      return null;
     }
-  }, [socket, isConnected]);
+
+    const channelName = `private-board-${boardId}`;
+    
+    // Check if already subscribed to this channel
+    const existingChannel = pusher.channel(channelName);
+    if (existingChannel && currentChannel?.name === channelName) {
+      console.log(`[Pusher] Already subscribed to: ${channelName}`);
+      return existingChannel;
+    }
+    
+    // Unsubscribe from previous channel if exists
+    if (currentChannel && currentChannel.name !== channelName) {
+      pusher.unsubscribe(currentChannel.name);
+      console.log(`[Pusher] Unsubscribed from: ${currentChannel.name}`);
+    }
+
+    // Subscribe to new channel
+    const channel = pusher.subscribe(channelName);
+    
+    channel.bind('pusher:subscription_succeeded', () => {
+      console.log(`[Pusher] Successfully subscribed to: ${channelName}`);
+    });
+
+    channel.bind('pusher:subscription_error', (error: unknown) => {
+      console.error(`[Pusher] Subscription error for ${channelName}:`, error);
+    });
+
+    setCurrentChannel(channel);
+    console.log(`[Pusher] Joined board: ${boardId}`);
+    return channel;
+  }, [pusher, isConnected, currentChannel]);
 
   const leaveBoard = useCallback((boardId: string) => {
-    if (socket && isConnected) {
-      socket.emit('leave-board', boardId);
-      console.log(`[Socket] Left board: ${boardId}`);
+    if (!pusher) {
+      return;
     }
-  }, [socket, isConnected]);
+
+    const channelName = `private-board-${boardId}`;
+    pusher.unsubscribe(channelName);
+    
+    if (currentChannel?.name === channelName) {
+      setCurrentChannel(null);
+    }
+    
+    console.log(`[Pusher] Left board: ${boardId}`);
+  }, [pusher, currentChannel]);
 
   const contextValue: SocketContextType = useMemo(() => ({
-    socket,
+    pusher,
     isConnected,
     joinBoard,
     leaveBoard,
-  }), [socket, isConnected, joinBoard, leaveBoard]);
+    currentChannel,
+  }), [pusher, isConnected, joinBoard, leaveBoard, currentChannel]);
 
   return (
     <SocketContext.Provider value={contextValue}>

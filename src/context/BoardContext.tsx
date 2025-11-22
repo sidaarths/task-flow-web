@@ -6,6 +6,7 @@ import React, {
   useReducer,
   useCallback,
   useEffect,
+  useRef,
 } from 'react';
 import type { BoardWithListsAndTasks, List, Task, Board } from '@/types';
 import { boardApi } from '@/features/board/api/board';
@@ -242,16 +243,21 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     error: '',
   });
 
-  const { socket, joinBoard, leaveBoard } = useSocket();
+  const { currentChannel, joinBoard, leaveBoard } = useSocket();
+  const currentBoardIdRef = useRef<string | null>(null);
 
-  // Set up WebSocket event listeners
+  // Update the current board ID when board data changes
   useEffect(() => {
-    if (!socket || !state.boardData) return;
+    if (state.boardData) {
+      currentBoardIdRef.current = state.boardData.board._id;
+    } else {
+      currentBoardIdRef.current = null;
+    }
+  }, [state.boardData]);
 
-    const boardId = state.boardData.board._id;
-
-    // Join the board room when board data is loaded
-    joinBoard(boardId);
+  // Set up Pusher event listeners
+  useEffect(() => {
+    if (!currentChannel) return;
 
     // Listen for list events
     const handleListCreated = (list: List) => {
@@ -304,38 +310,54 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       dispatch({ type: 'REMOVE_BOARD_MEMBER', payload: userId });
     };
 
-    // Register event listeners
-    socket.on('list:created', handleListCreated);
-    socket.on('list:updated', handleListUpdated);
-    socket.on('list:deleted', handleListDeleted);
-    socket.on('task:created', handleTaskCreated);
-    socket.on('task:updated', handleTaskUpdated);
-    socket.on('task:deleted', handleTaskDeleted);
-    socket.on('board:updated', handleBoardUpdated);
-    socket.on('board:member-added', handleBoardMemberAdded);
-    socket.on('board:member-removed', handleBoardMemberRemoved);
+    // Register Pusher event listeners
+    currentChannel.bind('list:created', handleListCreated);
+    currentChannel.bind('list:updated', handleListUpdated);
+    currentChannel.bind('list:deleted', handleListDeleted);
+    currentChannel.bind('task:created', handleTaskCreated);
+    currentChannel.bind('task:updated', handleTaskUpdated);
+    currentChannel.bind('task:deleted', handleTaskDeleted);
+    currentChannel.bind('board:updated', handleBoardUpdated);
+    currentChannel.bind('board:member-added', handleBoardMemberAdded);
+    currentChannel.bind('board:member-removed', handleBoardMemberRemoved);
 
-    // Cleanup: remove listeners and leave room
+    // Cleanup: unbind listeners and leave room
     return () => {
-      socket.off('list:created', handleListCreated);
-      socket.off('list:updated', handleListUpdated);
-      socket.off('list:deleted', handleListDeleted);
-      socket.off('task:created', handleTaskCreated);
-      socket.off('task:updated', handleTaskUpdated);
-      socket.off('task:deleted', handleTaskDeleted);
-      socket.off('board:updated', handleBoardUpdated);
-      socket.off('board:member-added', handleBoardMemberAdded);
-      socket.off('board:member-removed', handleBoardMemberRemoved);
-      leaveBoard(boardId);
+      currentChannel.unbind('list:created', handleListCreated);
+      currentChannel.unbind('list:updated', handleListUpdated);
+      currentChannel.unbind('list:deleted', handleListDeleted);
+      currentChannel.unbind('task:created', handleTaskCreated);
+      currentChannel.unbind('task:updated', handleTaskUpdated);
+      currentChannel.unbind('task:deleted', handleTaskDeleted);
+      currentChannel.unbind('board:updated', handleBoardUpdated);
+      currentChannel.unbind('board:member-added', handleBoardMemberAdded);
+      currentChannel.unbind('board:member-removed', handleBoardMemberRemoved);
     };
-  }, [socket, state.boardData, joinBoard, leaveBoard]);
+  }, [currentChannel]);
+
+  // Cleanup: leave board when component unmounts
+  useEffect(() => {
+    return () => {
+      if (currentBoardIdRef.current) {
+        leaveBoard(currentBoardIdRef.current);
+      }
+    };
+  }, [leaveBoard]);
 
   const fetchBoardData = useCallback(async (boardId: string) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: '' });
+      
+      // Leave previous board before loading new one
+      if (currentBoardIdRef.current && currentBoardIdRef.current !== boardId) {
+        leaveBoard(currentBoardIdRef.current);
+      }
+      
       const data = await boardApi.getBoardWithListsAndTasks(boardId);
       dispatch({ type: 'SET_BOARD_DATA', payload: data });
+      // Join the board channel after loading data
+      joinBoard(boardId);
     } catch (error) {
       dispatch({
         type: 'SET_ERROR',
@@ -343,7 +365,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
           error instanceof Error ? error.message : 'Failed to fetch board data',
       });
     }
-  }, []);
+  }, [joinBoard, leaveBoard]);
 
   const setBoardData = useCallback((data: BoardWithListsAndTasks) => {
     dispatch({ type: 'SET_BOARD_DATA', payload: data });
