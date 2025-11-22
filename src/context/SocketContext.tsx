@@ -46,8 +46,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     const token =
       typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-    // Only connect if user is authenticated
+    // Reset state if user is not authenticated
     if (!user || !token) {
+      setIsConnected(false);
+      setPusher(null);
       return;
     }
 
@@ -74,6 +76,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     pusherInstance.connection.bind('connected', () => {
       console.log('[Pusher] Connected');
       setIsConnected(true);
+      // Set pusher instance after connection is established
+      setPusher(pusherInstance);
     });
 
     pusherInstance.connection.bind('disconnected', () => {
@@ -83,22 +87,23 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     pusherInstance.connection.bind('error', (error: unknown) => {
       console.error('[Pusher] Connection error:', error);
+      setIsConnected(false);
     });
-
-    setPusher(pusherInstance);
 
     // Cleanup on unmount
     return () => {
       console.log('[Pusher] Disconnecting');
       pusherInstance.disconnect();
+      setIsConnected(false);
+      setPusher(null);
     };
   }, [user]);
 
   // Subscribe to a board channel
   const subscribeToBoard = useCallback(
     (boardId: string): Channel | null => {
-      if (!pusher || !isConnected) {
-        console.warn('[Pusher] Not connected');
+      if (!pusher) {
+        console.warn('[Pusher] Pusher instance not available');
         return null;
       }
 
@@ -111,7 +116,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         return existingChannel;
       }
 
-      // Subscribe to the channel
+      // Subscribe to the channel (Pusher will queue if not connected yet)
+      console.log(`[Pusher] Subscribing to ${channelName}`);
       const channel = pusher.subscribe(channelName);
 
       channel.bind('pusher:subscription_succeeded', () => {
@@ -124,7 +130,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
       return channel;
     },
-    [pusher, isConnected]
+    [pusher]
   );
 
   // Unsubscribe from a board channel

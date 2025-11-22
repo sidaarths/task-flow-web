@@ -247,10 +247,11 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
   const { subscribeToBoard, unsubscribeFromBoard } = useSocket();
   const channelRef = useRef<Channel | null>(null);
   const currentBoardIdRef = useRef<string | null>(null);
+  const listenersSetupRef = useRef<boolean>(false);
 
   // Set up event listeners for the channel - memoized to prevent rebinding
   const setupChannelListeners = useCallback((channel: Channel) => {
-    // IMPORTANT: Unbind all existing listeners first to prevent duplicates
+    // Unbind all existing listeners first to prevent duplicates
     channel.unbind_all();
     
     console.log('[BoardContext] Setting up channel listeners');
@@ -302,6 +303,8 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       console.log('[BoardContext] Board member removed:', userId);
       dispatch({ type: 'REMOVE_BOARD_MEMBER', payload: userId });
     });
+
+    listenersSetupRef.current = true;
   }, []);
 
   // Fetch board data and subscribe to real-time updates
@@ -310,6 +313,14 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       try {
         dispatch({ type: 'SET_LOADING', payload: true });
         dispatch({ type: 'SET_ERROR', payload: '' });
+
+        // If already on this board, just refresh data without resubscribing
+        if (currentBoardIdRef.current === boardId && channelRef.current) {
+          console.log(`[BoardContext] Refreshing data for current board: ${boardId}`);
+          const data = await boardApi.getBoardWithListsAndTasks(boardId);
+          dispatch({ type: 'SET_BOARD_DATA', payload: data });
+          return;
+        }
 
         // Unsubscribe from previous board if switching boards
         if (
@@ -324,6 +335,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
             channelRef.current.unbind_all();
             channelRef.current = null;
           }
+          listenersSetupRef.current = false;
         }
 
         // Fetch board data
@@ -335,7 +347,13 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
         if (channel) {
           channelRef.current = channel;
           currentBoardIdRef.current = boardId;
-          setupChannelListeners(channel);
+          
+          // Only setup listeners if not already done
+          if (!listenersSetupRef.current) {
+            setupChannelListeners(channel);
+          } else {
+            console.log('[BoardContext] Listeners already set up, skipping');
+          }
         }
       } catch (error) {
         dispatch({
@@ -362,6 +380,7 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       if (channelRef.current) {
         channelRef.current.unbind_all();
       }
+      listenersSetupRef.current = false;
     };
   }, [unsubscribeFromBoard]);
 
