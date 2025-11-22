@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
@@ -41,12 +41,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     
     // Only connect if user is authenticated and has a token
     if (!user || !token) {
-      // Disconnect if socket exists
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-        setIsConnected(false);
-      }
+      // Cleanup will handle disconnection via return function
       return;
     }
 
@@ -86,33 +81,35 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     setSocket(newSocket);
 
-    // Cleanup on unmount
+    // Cleanup function handles disconnection properly
     return () => {
+      console.log('[Socket] Cleaning up socket connection');
       newSocket.disconnect();
+      setSocket(null);
+      setIsConnected(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const joinBoard = (boardId: string) => {
+  const joinBoard = useCallback((boardId: string) => {
     if (socket && isConnected) {
       socket.emit('join-board', boardId);
       console.log(`[Socket] Joined board: ${boardId}`);
     }
-  };
+  }, [socket, isConnected]);
 
-  const leaveBoard = (boardId: string) => {
+  const leaveBoard = useCallback((boardId: string) => {
     if (socket && isConnected) {
       socket.emit('leave-board', boardId);
       console.log(`[Socket] Left board: ${boardId}`);
     }
-  };
+  }, [socket, isConnected]);
 
-  const contextValue: SocketContextType = {
+  const contextValue: SocketContextType = useMemo(() => ({
     socket,
     isConnected,
     joinBoard,
     leaveBoard,
-  };
+  }), [socket, isConnected, joinBoard, leaveBoard]);
 
   return (
     <SocketContext.Provider value={contextValue}>
