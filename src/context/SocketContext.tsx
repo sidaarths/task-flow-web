@@ -41,7 +41,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     
     // Only connect if user is authenticated and has a token
     if (!user || !token) {
-      // Cleanup will handle disconnection via return function
       return;
     }
 
