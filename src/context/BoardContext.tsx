@@ -11,6 +11,7 @@ import React, {
 import type { BoardWithListsAndTasks, List, Task, Board } from '@/types';
 import { boardApi } from '@/features/board/api/board';
 import { useSocket } from './SocketContext';
+import type { Channel } from 'pusher-js';
 
 interface BoardState {
   boardData: BoardWithListsAndTasks | null;
@@ -243,168 +244,129 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
     error: '',
   });
 
-  const { currentChannel, joinBoard, leaveBoard } = useSocket();
+  const { subscribeToBoard, unsubscribeFromBoard } = useSocket();
+  const channelRef = useRef<Channel | null>(null);
   const currentBoardIdRef = useRef<string | null>(null);
-  const leaveBoardRef = useRef(leaveBoard);
-  const joinBoardRef = useRef(joinBoard);
 
-  // Keep refs up to date without causing re-renders
-  useEffect(() => {
-    leaveBoardRef.current = leaveBoard;
-    joinBoardRef.current = joinBoard;
-  }, [leaveBoard, joinBoard]);
+  // Set up event listeners for the channel - memoized to prevent rebinding
+  const setupChannelListeners = useCallback((channel: Channel) => {
+    // IMPORTANT: Unbind all existing listeners first to prevent duplicates
+    channel.unbind_all();
+    
+    console.log('[BoardContext] Setting up channel listeners');
 
-  // Set up Pusher event listeners
-  useEffect(() => {
-    if (!currentChannel) return;
-
-    // Listen for list events
-    const handleListCreated = (list: List) => {
+    // List events
+    channel.bind('list:created', (list: List) => {
       console.log('[BoardContext] List created:', list);
       dispatch({ type: 'ADD_LIST', payload: list });
-    };
+    });
 
-    const handleListUpdated = (list: List) => {
+    channel.bind('list:updated', (list: List) => {
       console.log('[BoardContext] List updated:', list);
       dispatch({ type: 'UPDATE_LIST', payload: list });
-    };
+    });
 
-    const handleListDeleted = ({ listId }: { listId: string }) => {
+    channel.bind('list:deleted', ({ listId }: { listId: string }) => {
       console.log('[BoardContext] List deleted:', listId);
       dispatch({ type: 'DELETE_LIST', payload: listId });
-    };
+    });
 
-    // Listen for task events
-    const handleTaskCreated = (task: Task) => {
+    // Task events
+    channel.bind('task:created', (task: Task) => {
       console.log('[BoardContext] Task created:', task);
       dispatch({ type: 'ADD_TASK', payload: task });
-    };
+    });
 
-    const handleTaskUpdated = (task: Task) => {
+    channel.bind('task:updated', (task: Task) => {
       console.log('[BoardContext] Task updated:', task);
       dispatch({ type: 'UPDATE_TASK', payload: task });
-    };
+    });
 
-    const handleTaskDeleted = ({ taskId }: { taskId: string }) => {
+    channel.bind('task:deleted', ({ taskId }: { taskId: string }) => {
       console.log('[BoardContext] Task deleted:', taskId);
       dispatch({ type: 'DELETE_TASK', payload: taskId });
-    };
+    });
 
-    // Listen for board events
-    const handleBoardUpdated = (board: Board) => {
+    // Board events
+    channel.bind('board:updated', (board: Board) => {
       console.log('[BoardContext] Board updated:', board);
-      dispatch({
-        type: 'UPDATE_BOARD',
-        payload: board,
-      });
-    };
+      dispatch({ type: 'UPDATE_BOARD', payload: board });
+    });
 
-    const handleBoardMemberAdded = ({ userId }: { userId: string }) => {
+    channel.bind('board:member-added', ({ userId }: { userId: string }) => {
       console.log('[BoardContext] Board member added:', userId);
       dispatch({ type: 'ADD_BOARD_MEMBERS', payload: [userId] });
-    };
+    });
 
-    const handleBoardMemberRemoved = ({ userId }: { userId: string }) => {
+    channel.bind('board:member-removed', ({ userId }: { userId: string }) => {
       console.log('[BoardContext] Board member removed:', userId);
       dispatch({ type: 'REMOVE_BOARD_MEMBER', payload: userId });
-    };
-
-    // Register Pusher event listeners
-    currentChannel.bind('list:created', handleListCreated);
-    currentChannel.bind('list:updated', handleListUpdated);
-    currentChannel.bind('list:deleted', handleListDeleted);
-    currentChannel.bind('task:created', handleTaskCreated);
-    currentChannel.bind('task:updated', handleTaskUpdated);
-    currentChannel.bind('task:deleted', handleTaskDeleted);
-    currentChannel.bind('board:updated', handleBoardUpdated);
-    currentChannel.bind('board:member-added', handleBoardMemberAdded);
-    currentChannel.bind('board:member-removed', handleBoardMemberRemoved);
-
-    // Cleanup: unbind event listeners
-    return () => {
-      currentChannel.unbind('list:created', handleListCreated);
-      currentChannel.unbind('list:updated', handleListUpdated);
-      currentChannel.unbind('list:deleted', handleListDeleted);
-      currentChannel.unbind('task:created', handleTaskCreated);
-      currentChannel.unbind('task:updated', handleTaskUpdated);
-      currentChannel.unbind('task:deleted', handleTaskDeleted);
-      currentChannel.unbind('board:updated', handleBoardUpdated);
-      currentChannel.unbind('board:member-added', handleBoardMemberAdded);
-      currentChannel.unbind('board:member-removed', handleBoardMemberRemoved);
-    };
-  }, [currentChannel]);
-
-  // Cleanup: leave board when component unmounts
-  useEffect(() => {
-    return () => {
-      // Use the ref to get the current board ID at cleanup time
-      const boardIdToLeave = currentBoardIdRef.current;
-      if (boardIdToLeave) {
-        console.log(`[BoardContext] Cleanup: leaving board ${boardIdToLeave}`);
-        leaveBoardRef.current(boardIdToLeave);
-      }
-    };
-  }, []); // Empty deps - cleanup captures the latest refs
-
-  const fetchBoardData = useCallback(async (boardId: string) => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'SET_ERROR', payload: '' });
-
-      // Leave previous board before loading new one
-      const previousBoardId = currentBoardIdRef.current;
-      if (previousBoardId && previousBoardId !== boardId) {
-        console.log(
-          `[BoardContext] Switching from board ${previousBoardId} to ${boardId}`
-        );
-        leaveBoardRef.current(previousBoardId);
-      }
-
-      const data = await boardApi.getBoardWithListsAndTasks(boardId);
-
-      // Join the board channel before setting data to ensure consistency
-      const channel = joinBoardRef.current(boardId);
-      if (!channel) {
-        console.warn(
-          `[BoardContext] Failed to join board channel for boardId: ${boardId}`
-        );
-        currentBoardIdRef.current = boardId;
-      } else {
-        // Successfully joined - update ref
-        currentBoardIdRef.current = boardId;
-      }
-      // Set board data after joining channel (or attempting to)
-      dispatch({ type: 'SET_BOARD_DATA', payload: data });
-    } catch (error) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload:
-          error instanceof Error ? error.message : 'Failed to fetch board data',
-      });
-    }
+    });
   }, []);
 
-  const setBoardData = useCallback((data: BoardWithListsAndTasks) => {
-    const newBoardId = data.board._id;
-    const previousBoardId = currentBoardIdRef.current;
+  // Fetch board data and subscribe to real-time updates
+  const fetchBoardData = useCallback(
+    async (boardId: string) => {
+      try {
+        dispatch({ type: 'SET_LOADING', payload: true });
+        dispatch({ type: 'SET_ERROR', payload: '' });
 
-    // If switching to a different board, handle cleanup and joining
-    if (previousBoardId && previousBoardId !== newBoardId) {
-      console.log(
-        `[BoardContext] setBoardData: Switching from ${previousBoardId} to ${newBoardId}`
-      );
-      leaveBoardRef.current(previousBoardId);
-    }
+        // Unsubscribe from previous board if switching boards
+        if (
+          currentBoardIdRef.current &&
+          currentBoardIdRef.current !== boardId
+        ) {
+          console.log(
+            `[BoardContext] Switching boards: ${currentBoardIdRef.current} -> ${boardId}`
+          );
+          unsubscribeFromBoard(currentBoardIdRef.current);
+          if (channelRef.current) {
+            channelRef.current.unbind_all();
+            channelRef.current = null;
+          }
+        }
 
-    dispatch({ type: 'SET_BOARD_DATA', payload: data });
+        // Fetch board data
+        const data = await boardApi.getBoardWithListsAndTasks(boardId);
+        dispatch({ type: 'SET_BOARD_DATA', payload: data });
 
-    // Join the new board if not already joined
-    if (currentBoardIdRef.current !== newBoardId) {
-      const channel = joinBoardRef.current(newBoardId);
-      if (channel) {
-        currentBoardIdRef.current = newBoardId;
+        // Subscribe to board channel for real-time updates
+        const channel = subscribeToBoard(boardId);
+        if (channel) {
+          channelRef.current = channel;
+          currentBoardIdRef.current = boardId;
+          setupChannelListeners(channel);
+        }
+      } catch (error) {
+        dispatch({
+          type: 'SET_ERROR',
+          payload:
+            error instanceof Error
+              ? error.message
+              : 'Failed to fetch board data',
+        });
       }
-    }
+    },
+    [subscribeToBoard, unsubscribeFromBoard, setupChannelListeners]
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (currentBoardIdRef.current) {
+        console.log(
+          `[BoardContext] Cleanup: unsubscribing from ${currentBoardIdRef.current}`
+        );
+        unsubscribeFromBoard(currentBoardIdRef.current);
+      }
+      if (channelRef.current) {
+        channelRef.current.unbind_all();
+      }
+    };
+  }, [unsubscribeFromBoard]);
+
+  const setBoardData = useCallback((data: BoardWithListsAndTasks) => {
+    dispatch({ type: 'SET_BOARD_DATA', payload: data });
   }, []);
 
   const setLoading = useCallback((loading: boolean) => {
