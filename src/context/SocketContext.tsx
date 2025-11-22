@@ -1,15 +1,25 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { io, Socket } from 'socket.io-client';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
+import Pusher, { Channel } from 'pusher-js';
 import { useAuth } from './AuthContext';
-import { SOCKET_URL } from '@/config/apiConfig';
+import { API_URL } from '@/config/apiConfig';
+
+// Helper function to generate channel name
+const getChannelName = (boardId: string): string => `private-board-${boardId}`;
 
 interface SocketContextType {
-  socket: Socket | null;
+  pusher: Pusher | null;
   isConnected: boolean;
-  joinBoard: (boardId: string) => void;
-  leaveBoard: (boardId: string) => void;
+  subscribeToBoard: (boardId: string) => Channel | null;
+  unsubscribeFromBoard: (boardId: string) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -27,83 +37,125 @@ interface SocketProviderProps {
 }
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [pusher, setPusher] = useState<Pusher | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const { user } = useAuth();
 
+  // Initialize Pusher connection
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    
-    // Only connect if user is authenticated and has a token
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+    // Reset state if user is not authenticated
     if (!user || !token) {
+      setIsConnected(false);
+      setPusher(null);
       return;
     }
 
-    // Create socket connection
-    const newSocket = io(SOCKET_URL, {
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const pusherCluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'us2';
+
+    if (!pusherKey) {
+      console.error('[Pusher] NEXT_PUBLIC_PUSHER_KEY not found');
+      return;
+    }
+
+    // Create Pusher instance
+    const pusherInstance = new Pusher(pusherKey, {
+      cluster: pusherCluster,
+      authEndpoint: `${API_URL}/pusher/auth`,
       auth: {
-        token,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
     });
 
-    newSocket.on('connect', () => {
-      console.log('[Socket] Connected to WebSocket server');
+    // Connection state handlers
+    pusherInstance.connection.bind('connected', () => {
+      console.log('[Pusher] Connected');
       setIsConnected(true);
+      // Set pusher instance after connection is established
+      setPusher(pusherInstance);
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('[Socket] Disconnected from WebSocket server');
+    pusherInstance.connection.bind('disconnected', () => {
+      console.log('[Pusher] Disconnected');
       setIsConnected(false);
     });
 
-    newSocket.on('connect_error', (error) => {
-      console.error('[Socket] Connection error:', error.message);
+    pusherInstance.connection.bind('error', (error: unknown) => {
+      console.error('[Pusher] Connection error:', error);
       setIsConnected(false);
     });
 
-    newSocket.on('error', (error: { message: string }) => {
-      console.error('[Socket] Socket error:', error.message);
-    });
-
-    newSocket.on('joined-board', ({ boardId }: { boardId: string }) => {
-      console.log(`[Socket] Successfully joined board: ${boardId}`);
-    });
-
-    setSocket(newSocket);
-
-    // Cleanup function handles disconnection properly
+    // Cleanup on unmount
     return () => {
-      console.log('[Socket] Cleaning up socket connection');
-      newSocket.disconnect();
-      setSocket(null);
+      console.log('[Pusher] Disconnecting');
+      pusherInstance.disconnect();
       setIsConnected(false);
+      setPusher(null);
     };
   }, [user]);
 
-  const joinBoard = useCallback((boardId: string) => {
-    if (socket && isConnected) {
-      socket.emit('join-board', boardId);
-      console.log(`[Socket] Joined board: ${boardId}`);
-    }
-  }, [socket, isConnected]);
+  // Subscribe to a board channel
+  const subscribeToBoard = useCallback(
+    (boardId: string): Channel | null => {
+      if (!pusher) {
+        console.warn('[Pusher] Pusher instance not available');
+        return null;
+      }
 
-  const leaveBoard = useCallback((boardId: string) => {
-    if (socket && isConnected) {
-      socket.emit('leave-board', boardId);
-      console.log(`[Socket] Left board: ${boardId}`);
-    }
-  }, [socket, isConnected]);
+      const channelName = getChannelName(boardId);
 
-  const contextValue: SocketContextType = useMemo(() => ({
-    socket,
-    isConnected,
-    joinBoard,
-    leaveBoard,
-  }), [socket, isConnected, joinBoard, leaveBoard]);
+      // Check if already subscribed
+      const existingChannel = pusher.channel(channelName);
+      if (existingChannel) {
+        console.log(`[Pusher] Already subscribed to ${channelName}`);
+        return existingChannel;
+      }
+
+      // Subscribe to the channel (Pusher will queue if not connected yet)
+      console.log(`[Pusher] Subscribing to ${channelName}`);
+      const channel = pusher.subscribe(channelName);
+
+      channel.bind('pusher:subscription_succeeded', () => {
+        console.log(`[Pusher] Subscribed to ${channelName}`);
+      });
+
+      channel.bind('pusher:subscription_error', (error: unknown) => {
+        console.error(`[Pusher] Subscription error for ${channelName}:`, error);
+      });
+
+      return channel;
+    },
+    [pusher]
+  );
+
+  // Unsubscribe from a board channel
+  const unsubscribeFromBoard = useCallback(
+    (boardId: string) => {
+      if (!pusher) {
+        return;
+      }
+
+      const channelName = getChannelName(boardId);
+      pusher.unsubscribe(channelName);
+      console.log(`[Pusher] Unsubscribed from ${channelName}`);
+    },
+    [pusher]
+  );
+
+  const contextValue: SocketContextType = useMemo(
+    () => ({
+      pusher,
+      isConnected,
+      subscribeToBoard,
+      unsubscribeFromBoard,
+    }),
+    [pusher, isConnected, subscribeToBoard, unsubscribeFromBoard]
+  );
 
   return (
     <SocketContext.Provider value={contextValue}>

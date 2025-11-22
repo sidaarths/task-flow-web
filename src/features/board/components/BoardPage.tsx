@@ -42,13 +42,7 @@ export default function BoardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: currentUser } = useAuth();
-  const {
-    boardData,
-    loading,
-    error,
-    fetchBoardData,
-    moveTask,
-  } = useBoard();
+  const { boardData, loading, error, fetchBoardData, moveTask } = useBoard();
 
   const boardId = params.boardId as string;
   const searchQuery = searchParams.get('query') || '';
