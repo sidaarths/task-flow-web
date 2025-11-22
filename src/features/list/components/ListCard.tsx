@@ -20,7 +20,6 @@ import {
   TaskEditModal,
   TaskDeleteModal,
 } from '@/features/task';
-import { useBoard } from '@/context/BoardContext';
 import { listApi } from '@/features/list/api/list';
 import { taskApi } from '@/features/task/api/task';
 
@@ -41,7 +40,6 @@ export default function ListCard({
   searchQuery,
   totalTasksInList,
 }: ListCardProps) {
-  const { addTask, updateTask, deleteTask } = useBoard();
   const [showMenu, setShowMenu] = useState(false);
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -79,8 +77,8 @@ export default function ListCard({
     }
   ) => {
     try {
-      const updatedTask = await taskApi.updateTask(taskId, data);
-      updateTask(updatedTask);
+      await taskApi.updateTask(taskId, data);
+      // Remove optimistic update - WebSocket will handle it
     } catch (error) {
       console.error('Failed to update task:', error);
     }
@@ -89,7 +87,7 @@ export default function ListCard({
   const handleDeleteTask = async (taskId: string) => {
     try {
       await taskApi.deleteTask(taskId);
-      deleteTask(taskId);
+      // Remove optimistic update - WebSocket will handle it
     } catch (error) {
       console.error('Failed to delete task:', error);
     }
@@ -232,8 +230,8 @@ export default function ListCard({
         isOpen={showCreateTaskModal}
         onClose={() => setShowCreateTaskModal(false)}
         onCreate={async (data) => {
-          const newTask = await listApi.createTask(list._id, data);
-          addTask(newTask);
+          await listApi.createTask(list._id, data);
+          // Remove optimistic update - WebSocket will handle it
           setShowCreateTaskModal(false);
         }}
         listTitle={list.title}

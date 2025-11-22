@@ -47,11 +47,6 @@ export default function BoardPage() {
     loading,
     error,
     fetchBoardData,
-    addList,
-    updateList,
-    deleteList,
-    addBoardMembers,
-    removeBoardMember,
     moveTask,
   } = useBoard();
 
@@ -95,8 +90,8 @@ export default function BoardPage() {
   const handleCreateList = async (title: string) => {
     try {
       setIsCreatingList(true);
-      const newList = await boardApi.createList(boardId, { title });
-      addList(newList);
+      await boardApi.createList(boardId, { title });
+      // Remove optimistic update - WebSocket will handle it
     } catch (error) {
       throw error;
     } finally {
@@ -112,8 +107,8 @@ export default function BoardPage() {
   const handleUpdateList = async (listId: string, title: string) => {
     try {
       setIsUpdatingList(true);
-      const updatedList = await listApi.updateList(listId, { title });
-      updateList(updatedList);
+      await listApi.updateList(listId, { title });
+      // Remove optimistic update - WebSocket will handle it
     } catch (error) {
       throw error;
     } finally {
@@ -130,7 +125,7 @@ export default function BoardPage() {
     try {
       setIsDeletingList(true);
       await listApi.deleteList(listId);
-      deleteList(listId);
+      // Remove optimistic update - WebSocket will handle it
     } catch (error) {
       throw error;
     } finally {
@@ -138,17 +133,19 @@ export default function BoardPage() {
     }
   };
 
-  const handleMembersAdded = async (newMemberIds: string[]) => {
+  const handleMembersAdded = async () => {
     try {
-      addBoardMembers(newMemberIds);
+      // Remove optimistic update - WebSocket will handle it
+      // The InviteUsersModal already calls the API
     } catch (error) {
       console.error('Failed to add members:', error);
     }
   };
 
-  const handleMemberRemoved = async (removedUserId: string) => {
+  const handleMemberRemoved = async () => {
     try {
-      removeBoardMember(removedUserId);
+      // Remove optimistic update - WebSocket will handle it
+      // The BoardMembersModal already calls the API
     } catch (error) {
       console.error('Failed to remove member:', error);
     }
