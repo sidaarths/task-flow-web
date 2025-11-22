@@ -76,6 +76,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setIsConnected(false);
     });
 
+    newSocket.on('error', (error: { message: string }) => {
+      console.error('[Socket] Socket error:', error.message);
+    });
+
+    newSocket.on('joined-board', ({ boardId }: { boardId: string }) => {
+      console.log(`[Socket] Successfully joined board: ${boardId}`);
+    });
+
     setSocket(newSocket);
 
     // Cleanup on unmount
