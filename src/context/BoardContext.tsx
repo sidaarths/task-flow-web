@@ -323,7 +323,8 @@ export const BoardProvider: React.FC<BoardProviderProps> = ({ children }) => {
       socket.off('board:member-removed', handleBoardMemberRemoved);
       leaveBoard(boardId);
     };
-  }, [socket, state.boardData, joinBoard, leaveBoard]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, state.boardData?.board._id]);
 
   const fetchBoardData = useCallback(async (boardId: string) => {
     try {
