@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { SOCKET_URL } from '@/config/apiConfig';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -25,12 +26,6 @@ interface SocketProviderProps {
   children: React.ReactNode;
 }
 
-// Get API URL without /api suffix for WebSocket connection
-const getSocketUrl = () => {
-  const isDev = process.env.NODE_ENV === 'development';
-  return isDev ? 'http://localhost:3001' : 'https://task-flow-api-alpha.vercel.app';
-};
-
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -45,7 +40,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
 
     // Create socket connection
-    const newSocket = io(getSocketUrl(), {
+    const newSocket = io(SOCKET_URL, {
       auth: {
         token,
       },
