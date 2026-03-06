@@ -44,6 +44,7 @@ export interface BoardWithListsAndTasks {
   board: Board;
   lists: List[];
   tasks: Task[];
+  memberDetails: User[];
 }
 
 // Request interfaces
@@ -76,5 +77,5 @@ export interface UpdateTaskRequest {
   title?: string;
   description?: string;
   labels?: string[];
-  dueDate?: string;
+  dueDate?: string | null;
 }

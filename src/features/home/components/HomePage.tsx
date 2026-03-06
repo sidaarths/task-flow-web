@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { boardsApi } from '../api/boards';
+import { useState, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import type { Board, CreateBoardRequest, UpdateBoardRequest } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -17,30 +16,28 @@ import {
   IconPlus,
   IconSearch,
 } from '@tabler/icons-react';
-import { useRouter } from 'next/navigation';
+import { useBoards, useCreateBoard, useUpdateBoard, useDeleteBoard } from '@/hooks/useBoards';
 
 export default function HomePage() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('query') || '';
   const { user: currentUser } = useAuth();
+  const router = useRouter();
 
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
 
-  const router = useRouter();
+  // React Query — replaces useState/useEffect/loadInitialData
+  const { data: boards = [], isLoading, isError, error, refetch } = useBoards();
+  const createBoard = useCreateBoard();
+  const updateBoard = useUpdateBoard();
+  const deleteBoard = useDeleteBoard();
 
-  // Filter boards based on search query
   const filteredBoards = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return boards;
-    }
-
+    if (!searchQuery.trim()) return boards;
     const query = searchQuery.toLowerCase().trim();
     return boards.filter(
       (board) =>
@@ -49,31 +46,8 @@ export default function HomePage() {
     );
   }, [boards, searchQuery]);
 
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  const loadInitialData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const boardsData = await boardsApi.getBoards();
-      setBoards(boardsData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreateBoard = async (data: CreateBoardRequest) => {
-    try {
-      const newBoard = await boardsApi.createBoard(data);
-      setBoards((prev) => [newBoard, ...prev]);
-    } catch (err) {
-      throw err; // Re-throw to be handled by the modal
-    }
+    await createBoard.mutateAsync(data);
   };
 
   const handleEditBoard = (board: Board) => {
@@ -81,18 +55,8 @@ export default function HomePage() {
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateBoard = async (
-    boardId: string,
-    data: UpdateBoardRequest
-  ) => {
-    try {
-      const updatedBoard = await boardsApi.updateBoard(boardId, data);
-      setBoards((prev) =>
-        prev.map((board) => (board._id === boardId ? updatedBoard : board))
-      );
-    } catch (err) {
-      throw err; // Re-throw to be handled by the modal
-    }
+  const handleUpdateBoard = async (boardId: string, data: UpdateBoardRequest) => {
+    await updateBoard.mutateAsync({ boardId, data });
   };
 
   const handleDeleteBoard = (board: Board) => {
@@ -101,20 +65,15 @@ export default function HomePage() {
   };
 
   const handleConfirmDelete = async (boardId: string) => {
-    try {
-      await boardsApi.deleteBoard(boardId);
-      setBoards((prev) => prev.filter((board) => board._id !== boardId));
-    } catch (err) {
-      throw err; // Re-throw to be handled by the modal
-    }
+    await deleteBoard.mutateAsync(boardId);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-6 py-8">
-        <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex min-h-[60vh] items-center justify-center">
           <div className="flex items-center space-x-3 text-gray-600 dark:text-gray-400">
-            <IconLoader2 className="w-6 h-6 animate-spin" />
+            <IconLoader2 className="h-6 w-6 animate-spin" />
             <span className="text-sm font-medium">Loading your boards...</span>
           </div>
         </div>
@@ -122,22 +81,24 @@ export default function HomePage() {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="container mx-auto px-6 py-8">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-              <IconAlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="space-y-4 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+              <IconAlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
                 Something went wrong
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+              <p className="mb-4 text-gray-600 dark:text-gray-400">
+                {error instanceof Error ? error.message : 'Failed to load boards'}
+              </p>
               <button
-                onClick={loadInitialData}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all duration-200"
+                onClick={() => refetch()}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700"
               >
                 Try Again
               </button>
@@ -151,12 +112,10 @@ export default function HomePage() {
   return (
     <div className="container mx-auto px-6 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            {searchQuery
-              ? `Search Results for "${searchQuery}"`
-              : 'Your Boards'}
+          <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
+            {searchQuery ? `Search Results for "${searchQuery}"` : 'Your Boards'}
           </h1>
           <p className="text-gray-600/80 dark:text-gray-400/80">
             {searchQuery
@@ -166,75 +125,60 @@ export default function HomePage() {
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-blue-500/20"
+          className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:ring-2 focus:ring-blue-500/20"
         >
-          <IconPlus className="w-4 h-4" />
+          <IconPlus className="h-4 w-4" />
           <span>New Board</span>
         </button>
       </div>
 
       {/* Boards Grid */}
       {boards.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
-            <svg
-              className="w-8 h-8 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
+        <div className="py-16 text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+            <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No boards yet
-          </h3>
-          <p className="text-gray-600/80 dark:text-gray-400/80 mb-6 max-w-md mx-auto">
+          <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">No boards yet</h3>
+          <p className="mx-auto mb-6 max-w-md text-gray-600/80 dark:text-gray-400/80">
             Create your first board to start organizing your projects and tasks
           </p>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center space-x-2 px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200"
+            className="inline-flex items-center space-x-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md"
           >
-            <IconPlus className="w-4 h-4" />
+            <IconPlus className="h-4 w-4" />
             <span>Create Your First Board</span>
           </button>
         </div>
       ) : filteredBoards.length === 0 && searchQuery ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
-            <IconSearch className="w-8 h-8 text-gray-400" />
+        <div className="py-16 text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+            <IconSearch className="h-8 w-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No boards found
-          </h3>
-          <p className="text-gray-600/80 dark:text-gray-400/80 mb-6 max-w-md mx-auto">
-            No boards match your search for &quot;{searchQuery}&quot;. Try a
-            different search term or create a new board.
+          <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">No boards found</h3>
+          <p className="mx-auto mb-6 max-w-md text-gray-600/80 dark:text-gray-400/80">
+            No boards match your search for &quot;{searchQuery}&quot;.
           </p>
           <div className="flex items-center justify-center space-x-4">
             <button
               onClick={() => router.replace('/home')}
-              className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+              className="inline-flex items-center space-x-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
             >
               <span>Clear Search</span>
             </button>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-md transition-all duration-200"
+              className="inline-flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md"
             >
-              <IconPlus className="w-4 h-4" />
+              <IconPlus className="h-4 w-4" />
               <span>Create Board</span>
             </button>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredBoards.map((board) => (
             <BoardCard
               key={board._id}
@@ -253,24 +197,16 @@ export default function HomePage() {
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreateBoard}
       />
-
       <EditBoardModal
         isOpen={isEditModalOpen}
         board={editingBoard}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingBoard(null);
-        }}
+        onClose={() => { setIsEditModalOpen(false); setEditingBoard(null); }}
         onUpdate={handleUpdateBoard}
       />
-
       <DeleteBoardModal
         isOpen={isDeleteModalOpen}
         board={deletingBoard}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setDeletingBoard(null);
-        }}
+        onClose={() => { setIsDeleteModalOpen(false); setDeletingBoard(null); }}
         onDelete={handleConfirmDelete}
       />
     </div>
