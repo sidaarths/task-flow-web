@@ -59,7 +59,7 @@ export default function TaskSidePanel({
     setDueDate(task.dueDate ? task.dueDate.split('T')[0] : '');
   }, [task?.title, task?.description, task?.dueDate]);
 
-  // Reset transient UI when the panel opens for a new task
+  // Reset transient UI whenever the panel opens (same task or different task)
   useEffect(() => {
     if (task && isOpen) {
       setEditingField(null);
@@ -67,7 +67,7 @@ export default function TaskSidePanel({
       setShowDeleteConfirm(false);
       setLabelInput('');
     }
-  }, [task?._id]);
+  }, [task?._id, isOpen]);
 
   // Escape key closes the panel
   useEffect(() => {

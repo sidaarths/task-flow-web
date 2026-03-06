@@ -27,7 +27,10 @@ export const useSSE = (boardId: string | null) => {
     if (!boardId) return;
 
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!token) return;
+    if (!token) {
+      console.warn('[SSE] No auth token found — real-time updates will not be available.');
+      return;
+    }
 
     const url = `${API_URL}${API_ROUTES.SSE}/boards/${boardId}?token=${encodeURIComponent(token)}`;
 

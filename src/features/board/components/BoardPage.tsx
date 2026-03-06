@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   IconPlus,
@@ -127,13 +127,11 @@ export default function BoardPage() {
     const newIdx = direction === 'left' ? idx - 1 : idx + 1;
     if (newIdx < 0 || newIdx >= sorted.length) return;
 
-    // Optimistic update — swap positions in cache
-    const updated = sorted.map((l, i) => {
-      if (i === idx) return { ...l, position: newIdx };
-      if (i === newIdx) return { ...l, position: idx };
-      return l;
-    });
-    updater.reorderLists(updated.map((l) => ({ _id: l._id, position: l.position })));
+    // Optimistic update — swap elements then assign sequential positions to match
+    // what the server returns (avoids any gap issues with stored position values)
+    const swapped = [...sorted];
+    [swapped[idx], swapped[newIdx]] = [swapped[newIdx], swapped[idx]];
+    updater.reorderLists(swapped.map((l, i) => ({ _id: l._id, position: i })));
 
     try {
       await listApi.updateListPosition(listId, newIdx);
@@ -217,13 +215,23 @@ export default function BoardPage() {
     return { sortedLists: sorted, getTasksForList: getTasksForListFn, getTotalTasksForList: getTotalTasksForListFn };
   }, [boardData?.lists, boardData?.tasks, searchQuery]);
 
-  // Keep the panel's task reference live as SSE updates come in
+  // Keep the panel's task reference live as SSE updates come in.
+  // Don't fall back to the stale selectedTask: if the task was deleted by another
+  // user the SSE removes it from the cache and panelTask becomes null, which triggers
+  // the effect below to close the panel automatically.
   const panelTask = selectedTask
-    ? (boardData?.tasks.find((t) => t._id === selectedTask._id) ?? selectedTask)
+    ? (boardData?.tasks.find((t) => t._id === selectedTask._id) ?? null)
     : null;
   const panelListTitle = panelTask
     ? (sortedLists.find((l) => l._id === panelTask.listId)?.title ?? '')
     : '';
+
+  // Auto-close the panel when the open task is deleted remotely
+  useEffect(() => {
+    if (selectedTask && !panelTask) {
+      setSelectedTask(null);
+    }
+  }, [panelTask, selectedTask, setSelectedTask]);
 
   // ── Loading / error states ─────────────────────────────────────────────────
   if (isLoading) {
