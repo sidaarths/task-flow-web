@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   IconPlus,
@@ -24,7 +24,9 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { List, Task } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import { useBoard } from '@/context/BoardContext';
+import { useBoardDetail, useBoardCacheUpdater } from '@/hooks/useBoard';
+import { useSSE } from '@/hooks/useSSE';
+import { useUIStore } from '@/stores/uiStore';
 import { boardApi } from '@/features/board/api/board';
 import { listApi } from '@/features/list/api/list';
 import {
@@ -36,57 +38,52 @@ import ListCard, {
   EditListModal,
   DeleteListModal,
 } from '@/features/list';
+import TaskSidePanel from '@/features/task/components/TaskSidePanel';
 
 export default function BoardPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: currentUser } = useAuth();
-  const { boardData, loading, error, fetchBoardData, moveTask } = useBoard();
 
   const boardId = params.boardId as string;
   const searchQuery = searchParams.get('query') || '';
 
-  // Modal states
-  const [showCreateListModal, setShowCreateListModal] = useState(false);
-  const [showEditListModal, setShowEditListModal] = useState(false);
-  const [showDeleteListModal, setShowDeleteListModal] = useState(false);
-  const [showInviteUsersModal, setShowInviteUsersModal] = useState(false);
-  const [showBoardMembersModal, setShowBoardMembersModal] = useState(false);
-  const [selectedList, setSelectedList] = useState<List | null>(null);
+  const { data: boardData, isLoading, isError, error, refetch } = useBoardDetail(boardId);
+  useSSE(boardId);
+  const updater = useBoardCacheUpdater(boardId);
 
-  // Loading states
+  const {
+    showCreateListModal,
+    showEditListModal,
+    showDeleteListModal,
+    showInviteUsersModal,
+    showBoardMembersModal,
+    selectedList,
+    selectedTask,
+    activeTask,
+    openModal,
+    closeModal,
+    setSelectedList,
+    setSelectedTask,
+    setActiveTask,
+  } = useUIStore();
+
+  // Local loading states
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [isUpdatingList, setIsUpdatingList] = useState(false);
   const [isDeletingList, setIsDeletingList] = useState(false);
 
-  // Drag and drop states
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-
-  // Drag and drop sensors
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  useEffect(() => {
-    if (boardId) {
-      fetchBoardData(boardId);
-    }
-  }, [boardId, fetchBoardData]);
-
+  // ── List CRUD ──────────────────────────────────────────────────────────────
   const handleCreateList = async (title: string) => {
     try {
       setIsCreatingList(true);
       await boardApi.createList(boardId, { title });
-    } catch (error) {
-      throw error;
     } finally {
       setIsCreatingList(false);
     }
@@ -94,15 +91,13 @@ export default function BoardPage() {
 
   const handleEditList = (list: List) => {
     setSelectedList(list);
-    setShowEditListModal(true);
+    openModal('showEditListModal');
   };
 
   const handleUpdateList = async (listId: string, title: string) => {
     try {
       setIsUpdatingList(true);
       await listApi.updateList(listId, { title });
-    } catch (error) {
-      throw error;
     } finally {
       setIsUpdatingList(false);
     }
@@ -110,37 +105,54 @@ export default function BoardPage() {
 
   const handleDeleteList = (list: List) => {
     setSelectedList(list);
-    setShowDeleteListModal(true);
+    openModal('showDeleteListModal');
   };
 
   const handleConfirmDeleteList = async (listId: string) => {
     try {
       setIsDeletingList(true);
       await listApi.deleteList(listId);
-    } catch (error) {
-      throw error;
     } finally {
       setIsDeletingList(false);
     }
   };
 
-  // Drag and drop handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const taskId = active.id as string;
+  // ── List arrow-based reordering ────────────────────────────────────────────
+  const handleMoveList = async (listId: string, direction: 'left' | 'right') => {
+    if (!boardData) return;
+    const sorted = [...boardData.lists].sort((a, b) => a.position - b.position);
+    const idx = sorted.findIndex((l) => l._id === listId);
+    if (idx === -1) return;
 
-    // Find the task being dragged
-    const task = boardData?.tasks.find((t) => t._id === taskId);
-    if (task) {
-      setActiveTask(task);
+    const newIdx = direction === 'left' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= sorted.length) return;
+
+    // Optimistic update — swap positions in cache
+    const updated = sorted.map((l, i) => {
+      if (i === idx) return { ...l, position: newIdx };
+      if (i === newIdx) return { ...l, position: idx };
+      return l;
+    });
+    updater.reorderLists(updated.map((l) => ({ _id: l._id, position: l.position })));
+
+    try {
+      await listApi.updateListPosition(listId, newIdx);
+    } catch (err) {
+      console.error('Failed to move list:', err);
+      updater.invalidate();
     }
+  };
+
+  // ── Task DnD ───────────────────────────────────────────────────────────────
+  const handleDragStart = (event: DragStartEvent) => {
+    const id = event.active.id as string;
+    const task = boardData?.tasks.find((t) => t._id === id);
+    if (task) setActiveTask(task);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-
     setActiveTask(null);
-
     if (!over || !boardData) return;
 
     const activeId = active.id as string;
@@ -149,58 +161,39 @@ export default function BoardPage() {
     const draggedTask = boardData.tasks.find((t) => t._id === activeId);
     if (!draggedTask) return;
 
-    // Determine target list ID
     let targetListId: string;
     let targetPosition: number;
 
     if (overId.startsWith('list-')) {
-      // Dropped on a list container
       targetListId = overId.replace('list-', '');
-      const tasksInTargetList = boardData.tasks.filter(
-        (t) => t.listId === targetListId
-      );
-      targetPosition = tasksInTargetList.length;
+      targetPosition = boardData.tasks.filter((t) => t.listId === targetListId).length;
     } else {
-      // Dropped on another task
       const targetTask = boardData.tasks.find((t) => t._id === overId);
       if (!targetTask) return;
-
       targetListId = targetTask.listId;
       const tasksInList = boardData.tasks
         .filter((t) => t.listId === targetListId)
         .sort((a, b) => a.position - b.position);
-
       targetPosition = tasksInList.findIndex((t) => t._id === overId);
     }
 
-    // If nothing changed, return
-    if (
-      draggedTask.listId === targetListId &&
-      draggedTask.position === targetPosition
-    ) {
-      return;
-    }
+    if (draggedTask.listId === targetListId && draggedTask.position === targetPosition) return;
 
-    // Optimistically update the UI first
-    moveTask(activeId, targetListId, targetPosition);
+    updater.updateTask({ ...draggedTask, listId: targetListId, position: targetPosition });
 
     try {
       const { taskApi } = await import('@/features/task/api/task');
-
-      // Update task position/list on the server
       await taskApi.updateTaskPosition(activeId, targetPosition, targetListId);
-    } catch (error) {
-      console.error('Failed to move task:', error);
-      // If the API call fails, refresh the board data to revert the optimistic update
-      await fetchBoardData(boardId);
+    } catch (err) {
+      console.error('Failed to move task:', err);
+      updater.invalidate();
     }
   };
 
-  // Filter tasks based on search query
+  // ── Derived data ───────────────────────────────────────────────────────────
   const { sortedLists, getTasksForList, getTotalTasksForList } = useMemo(() => {
     const getTasksForListFn = (listId: string): Task[] => {
       if (!boardData?.tasks) return [];
-
       let tasks = boardData.tasks.filter((task) => task.listId === listId);
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
@@ -211,29 +204,29 @@ export default function BoardPage() {
             task.labels?.some((label) => label.toLowerCase().includes(query))
         );
       }
-
       return tasks;
     };
 
-    const getTotalTasksForListFn = (listId: string): number => {
-      if (!boardData?.tasks) return 0;
-      return boardData.tasks.filter((task) => task.listId === listId).length;
-    };
+    const getTotalTasksForListFn = (listId: string): number =>
+      boardData?.tasks ? boardData.tasks.filter((task) => task.listId === listId).length : 0;
 
-    // Always show all lists, sorted by position
-    const getAllListsSorted = () => {
-      if (!boardData?.lists) return [];
-      return [...boardData.lists].sort((a, b) => a.position - b.position);
-    };
+    const sorted = boardData?.lists
+      ? [...boardData.lists].sort((a, b) => a.position - b.position)
+      : [];
 
-    return {
-      sortedLists: getAllListsSorted(),
-      getTasksForList: getTasksForListFn,
-      getTotalTasksForList: getTotalTasksForListFn,
-    };
+    return { sortedLists: sorted, getTasksForList: getTasksForListFn, getTotalTasksForList: getTotalTasksForListFn };
   }, [boardData?.lists, boardData?.tasks, searchQuery]);
 
-  if (loading) {
+  // Keep the panel's task reference live as SSE updates come in
+  const panelTask = selectedTask
+    ? (boardData?.tasks.find((t) => t._id === selectedTask._id) ?? selectedTask)
+    : null;
+  const panelListTitle = panelTask
+    ? (sortedLists.find((l) => l._id === panelTask.listId)?.title ?? '')
+    : '';
+
+  // ── Loading / error states ─────────────────────────────────────────────────
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -244,18 +237,18 @@ export default function BoardPage() {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md mx-auto p-6">
           <IconAlertTriangle className="w-12 h-12 text-red-500 mx-auto" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Failed to Load Board
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Failed to Load Board</h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            {error instanceof Error ? error.message : 'An unexpected error occurred'}
+          </p>
           <div className="space-x-3">
             <button
-              onClick={() => fetchBoardData(boardId)}
+              onClick={() => refetch()}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200"
             >
               Try Again
@@ -275,6 +268,7 @@ export default function BoardPage() {
   if (!boardData) return null;
 
   const isOwner = currentUser && boardData.board.createdBy === currentUser._id;
+  const memberDetails = boardData.memberDetails ?? [];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -286,10 +280,10 @@ export default function BoardPage() {
               <button
                 onClick={() => router.push('/home')}
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-all duration-200"
+                aria-label="Back to boards"
               >
                 <IconArrowLeft className="w-5 h-5" />
               </button>
-
               <div>
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {boardData.board.title}
@@ -304,7 +298,7 @@ export default function BoardPage() {
 
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setShowBoardMembersModal(true)}
+                onClick={() => openModal('showBoardMembersModal')}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
                 title="View board members"
               >
@@ -317,7 +311,7 @@ export default function BoardPage() {
 
               {isOwner && (
                 <button
-                  onClick={() => setShowInviteUsersModal(true)}
+                  onClick={() => openModal('showInviteUsersModal')}
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
                 >
                   <IconUserPlus className="w-4 h-4" />
@@ -326,7 +320,7 @@ export default function BoardPage() {
               )}
 
               <button
-                onClick={() => setShowCreateListModal(true)}
+                onClick={() => openModal('showCreateListModal')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
               >
                 <IconPlus className="w-4 h-4" />
@@ -349,18 +343,21 @@ export default function BoardPage() {
             className="grid gap-3 pb-6 w-full"
             style={{
               gridTemplateColumns:
-                sortedLists.length > 0
-                  ? `repeat(${sortedLists.length}, 1fr)`
-                  : '1fr',
+                sortedLists.length > 0 ? `repeat(${sortedLists.length}, 1fr)` : '1fr',
             }}
           >
-            {sortedLists.map((list) => (
+            {sortedLists.map((list, idx) => (
               <ListCard
                 key={list._id}
                 list={list}
                 tasks={getTasksForList(list._id)}
                 onEditList={handleEditList}
                 onDeleteList={handleDeleteList}
+                onMoveLeft={() => handleMoveList(list._id, 'left')}
+                onMoveRight={() => handleMoveList(list._id, 'right')}
+                canMoveLeft={idx > 0}
+                canMoveRight={idx < sortedLists.length - 1}
+                onOpenTask={setSelectedTask}
                 searchQuery={searchQuery}
                 totalTasksInList={getTotalTasksForList(list._id)}
               />
@@ -373,11 +370,10 @@ export default function BoardPage() {
                   No lists yet
                 </h3>
                 <p className="text-gray-600/80 dark:text-gray-400/80 mb-6 max-w-sm">
-                  Create your first list to start organizing tasks for this
-                  board.
+                  Create your first list to start organizing tasks for this board.
                 </p>
                 <button
-                  onClick={() => setShowCreateListModal(true)}
+                  onClick={() => openModal('showCreateListModal')}
                   className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 hover:shadow-md transition-all duration-200 flex items-center space-x-2"
                 >
                   <IconPlus className="w-5 h-5" />
@@ -387,6 +383,7 @@ export default function BoardPage() {
             )}
           </div>
 
+          {/* DragOverlay — only for tasks */}
           <DragOverlay>
             {activeTask ? (
               <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg border-2 border-blue-500 p-4 opacity-90 transform rotate-2">
@@ -404,10 +401,20 @@ export default function BoardPage() {
         </DndContext>
       </div>
 
-      {/* Modals */}
+      {/* Task Side Panel — single instance for the whole board */}
+      <TaskSidePanel
+        task={panelTask}
+        isOpen={!!panelTask}
+        onClose={() => setSelectedTask(null)}
+        boardMembers={memberDetails}
+        listTitle={panelListTitle}
+        boardId={boardId}
+      />
+
+      {/* List Modals */}
       <CreateListModal
         isOpen={showCreateListModal}
-        onClose={() => setShowCreateListModal(false)}
+        onClose={() => closeModal('showCreateListModal')}
         onSubmit={handleCreateList}
         isLoading={isCreatingList}
       />
@@ -415,7 +422,7 @@ export default function BoardPage() {
       <EditListModal
         isOpen={showEditListModal}
         onClose={() => {
-          setShowEditListModal(false);
+          closeModal('showEditListModal');
           setSelectedList(null);
         }}
         onSubmit={handleUpdateList}
@@ -426,7 +433,7 @@ export default function BoardPage() {
       <DeleteListModal
         isOpen={showDeleteListModal}
         onClose={() => {
-          setShowDeleteListModal(false);
+          closeModal('showDeleteListModal');
           setSelectedList(null);
         }}
         onConfirm={handleConfirmDeleteList}
@@ -437,7 +444,7 @@ export default function BoardPage() {
       {isOwner && (
         <InviteUsersModal
           isOpen={showInviteUsersModal}
-          onClose={() => setShowInviteUsersModal(false)}
+          onClose={() => closeModal('showInviteUsersModal')}
           boardId={boardId}
           existingMemberIds={boardData.board.members}
         />
@@ -445,7 +452,7 @@ export default function BoardPage() {
 
       <BoardMembersModal
         isOpen={showBoardMembersModal}
-        onClose={() => setShowBoardMembersModal(false)}
+        onClose={() => closeModal('showBoardMembersModal')}
         board={boardData.board}
       />
     </div>

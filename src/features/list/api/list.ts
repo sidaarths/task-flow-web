@@ -46,4 +46,12 @@ export const listApi = {
       throw new Error(getErrorMessage(error));
     }
   },
+
+  async updateListPosition(listId: string, position: number): Promise<void> {
+    try {
+      await httpClient.put(`${API_ROUTES.LISTS}/${listId}/position`, { position });
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
 };

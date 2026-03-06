@@ -38,3 +38,8 @@ export const loginUser = async (credentials: LoginCredentials) => {
   );
   return response.data;
 };
+
+export const loginDemo = async (): Promise<{ token: string; boardId: string }> => {
+  const response = await axios.post(`${API_URL}${API_ROUTES.DEMO}`);
+  return response.data;
+};
