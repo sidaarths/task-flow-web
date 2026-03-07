@@ -82,13 +82,16 @@ describe('BoardPage header visual consistency', () => {
     expect(headerMatch).toBeNull();
   });
 
-  it('board page source uses max-w-7xl (matches global header max-width)', () => {
+  it('board header does NOT constrain content to max-w-7xl (full-width header)', () => {
     const fs = require('fs');
     const source = fs.readFileSync(
       require('path').join(process.cwd(), 'src/features/board/components/BoardPage.tsx'),
       'utf-8'
     );
-    expect(source).toMatch(/max-w-7xl/);
+    // Board sub-header should be full-width, no max-width constraint inside it
+    // Check that the board header section specifically has no max-w constraint
+    const boardHeaderSection = source.match(/Board header[\s\S]{0,400}/)?.[0] ?? '';
+    expect(boardHeaderSection).not.toMatch(/max-w-7xl/);
     expect(source).not.toMatch(/max-w-screen-2xl/);
   });
 
