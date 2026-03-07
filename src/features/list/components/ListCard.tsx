@@ -78,7 +78,7 @@ export default function ListCard({
     >
       <MagicCard
         className={cn(
-          'flex flex-col rounded-xl border bg-gray-50 shadow-sm dark:bg-gray-800/80',
+          'flex flex-col rounded-xl border bg-white shadow-sm dark:bg-gray-800',
           isOver
             ? 'border-blue-400 dark:border-blue-500'
             : 'border-gray-200/60 dark:border-gray-700/60'
