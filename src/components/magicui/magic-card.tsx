@@ -31,7 +31,7 @@ export function MagicCard({
     const y = e.clientY - rect.top;
 
     gradient.style.background = `radial-gradient(${gradientSize}px circle at ${x}px ${y}px, ${gradientColor}, transparent 80%)`;
-    gradient.style.opacity = String(gradientOpacity * 10);
+    gradient.style.opacity = String(Math.min(gradientOpacity * 10, 1));
   }, [gradientSize, gradientColor, gradientOpacity]);
 
   const handleMouseLeave = useCallback(() => {

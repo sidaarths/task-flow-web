@@ -127,7 +127,8 @@ export default function BoardPage() {
     updater.reorderLists(swapped.map((l, i) => ({ _id: l._id, position: i })));
     try {
       await listApi.updateListPosition(listId, newIdx);
-    } catch {
+    } catch (err) {
+      console.error('[BoardPage] Failed to move list:', err);
       updater.invalidate();
     }
   };
@@ -169,7 +170,8 @@ export default function BoardPage() {
     try {
       const { taskApi } = await import('@/features/task/api/task');
       await taskApi.updateTaskPosition(activeId, targetPosition, targetListId);
-    } catch {
+    } catch (err) {
+      console.error('[BoardPage] Failed to move task:', err);
       updater.invalidate();
     }
   };

@@ -52,6 +52,7 @@ export default function BoardCard({ board, onEdit, onDelete, currentUserId }: Bo
                 size="sm"
                 onClick={() => onEdit(board)}
                 title="Edit board"
+                aria-label="Edit board"
                 className="px-2 py-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 <IconEdit className="h-4 w-4" />
@@ -61,6 +62,7 @@ export default function BoardCard({ board, onEdit, onDelete, currentUserId }: Bo
                 size="sm"
                 onClick={() => onDelete(board)}
                 title="Delete board"
+                aria-label="Delete board"
                 className="px-2 py-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
               >
                 <IconTrash className="h-4 w-4" />

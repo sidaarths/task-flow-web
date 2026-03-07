@@ -22,7 +22,7 @@ export function BlurFade({
   blur = '4px',
 }: BlurFadeProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-20px' });
+  const isInView = useInView(ref, { once: true, amount: 0.1 });
   const shouldAnimate = triggerInView ? isInView : true;
 
   return (
