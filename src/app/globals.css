@@ -39,3 +39,21 @@ body {
   margin-left: 0.25rem;
   font-weight: 600;
 }
+
+/* Magic UI — shimmer sweep */
+@keyframes shimmer {
+  100% { transform: translateX(200%) skewX(-20deg); }
+}
+.animate-shimmer {
+  animation: shimmer 0.8s ease-in-out;
+}
+
+/* Magic UI — border beam */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes border-beam-rotate {
+  to { --angle: 360deg; }
+}
