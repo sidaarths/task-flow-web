@@ -4,20 +4,26 @@ import { useState, useEffect } from 'react';
 import {
   IconX,
   IconUsers,
+  IconUserPlus,
   IconCrown,
   IconTrash,
   IconLoader,
   IconAlertCircle,
+  IconCheck,
 } from '@tabler/icons-react';
 import { User, Board } from '@/types';
 import { boardApi } from '../api/boardUsers';
 import { useAuth } from '@/context/AuthContext';
+import UserSearch from '@/components/UserSearch';
+import httpClient from '@/config/httpClient';
+import { API_ROUTES } from '@/config/apiConfig';
+import { isAxiosError } from 'axios';
 
 interface BoardMembersModalProps {
   isOpen: boolean;
   onClose: () => void;
   board: Board;
-  onMemberRemoved?: (removedUserId: string) => void;
+  isOwner: boolean;
 }
 
 interface MemberWithDetails extends User {
@@ -25,194 +31,252 @@ interface MemberWithDetails extends User {
   isCurrentUser: boolean;
 }
 
+interface InviteResult {
+  user: User;
+  status: 'pending' | 'success' | 'error';
+  error?: string;
+}
+
 export default function BoardMembersModal({
   isOpen,
   onClose,
   board,
-  onMemberRemoved,
+  isOwner,
 }: BoardMembersModalProps) {
   const [members, setMembers] = useState<MemberWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [fetchError, setFetchError] = useState('');
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
+  const [inviteResults, setInviteResults] = useState<InviteResult[]>([]);
+  const [isInviting, setIsInviting] = useState(false);
+
   const { user: currentUser } = useAuth();
 
-  const isOwner = currentUser && board.createdBy === currentUser._id;
-
   useEffect(() => {
+    if (!isOpen) return;
     const fetchMembers = async () => {
-      if (!isOpen) return;
-
       try {
         setLoading(true);
-        setError('');
-
-        const memberDetails = await boardApi.getBoardMembers(board.members);
-        // Add additional flags
-        const membersWithDetails: MemberWithDetails[] = memberDetails.map(
-          (member) => ({
-            ...member,
-            isCreator: member._id === board.createdBy,
-            isCurrentUser: currentUser ? member._id === currentUser._id : false,
-          })
+        setFetchError('');
+        const details = await boardApi.getBoardMembers(board.members);
+        setMembers(
+          details.map((m) => ({
+            ...m,
+            isCreator: m._id === board.createdBy,
+            isCurrentUser: currentUser ? m._id === currentUser._id : false,
+          }))
         );
-
-        setMembers(membersWithDetails);
-      } catch (error) {
-        console.error('Failed to fetch board members:', error);
-        setError('Failed to load board members');
+      } catch (err) {
+        console.error('[BoardMembersModal] Failed to fetch members:', err);
+        setFetchError('Failed to load board members');
       } finally {
         setLoading(false);
       }
     };
-
     fetchMembers();
   }, [isOpen, board.members, board.createdBy, currentUser]);
 
   const handleRemoveMember = async (userId: string) => {
     if (!isOwner || userId === board.createdBy) return;
-
     try {
       setRemovingMemberId(userId);
       await boardApi.removeMemberFromBoard(board._id, userId);
-
-      setMembers((prev) => prev.filter((member) => member._id !== userId));
-
-      if (onMemberRemoved) {
-        onMemberRemoved(userId);
-      }
-    } catch (error) {
-      console.error('Failed to remove member:', error);
-      setError(
-        error instanceof Error ? error.message : 'Failed to remove member'
-      );
+      setMembers((prev) => prev.filter((m) => m._id !== userId));
+    } catch (err) {
+      console.error('[BoardMembersModal] Failed to remove member:', err);
     } finally {
       setRemovingMemberId(null);
     }
   };
 
+  const handleInvite = async () => {
+    if (selectedUsers.length === 0) return;
+    setIsInviting(true);
+    setInviteResults(selectedUsers.map((u) => ({ user: u, status: 'pending' })));
+    for (let i = 0; i < selectedUsers.length; i++) {
+      const user = selectedUsers[i];
+      try {
+        await httpClient.post(`${API_ROUTES.BOARDS}/${board._id}/users/${user._id}`);
+        setInviteResults((prev) =>
+          prev.map((item, idx) => (idx === i ? { ...item, status: 'success' } : item))
+        );
+      } catch (err: unknown) {
+        let msg = 'Failed to invite user';
+        if (isAxiosError(err)) msg = err.response?.data?.message ?? msg;
+        else if (err instanceof Error) msg = err.message;
+        setInviteResults((prev) =>
+          prev.map((item, idx) => (idx === i ? { ...item, status: 'error', error: msg } : item))
+        );
+      }
+    }
+    setIsInviting(false);
+    setSelectedUsers([]);
+  };
+
   const handleClose = () => {
-    setError('');
+    setFetchError('');
+    setSelectedUsers([]);
+    setInviteResults([]);
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md border border-gray-200/60 dark:border-gray-700/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="flex w-full max-w-md flex-col rounded-xl border border-gray-200/60 bg-white shadow-2xl dark:border-gray-700/60 dark:bg-gray-800"
+        style={{ maxHeight: '90vh' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200/60 dark:border-gray-700/60">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <IconUsers className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200/60 p-6 dark:border-gray-700/60">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30">
+              <IconUsers className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Board Members
-              </h2>
-              <p className="text-sm text-gray-600/80 dark:text-gray-400/80">
-                {members.length} member{members.length !== 1 ? 's' : ''}
-              </p>
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Board Members
+            </h2>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
+            aria-label="Dismiss"
+            className="rounded-lg p-2 text-gray-400 transition-all duration-200 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
           >
-            <IconX className="w-5 h-5" />
+            <IconX className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Member list — scrollable */}
+        <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <IconLoader className="w-6 h-6 animate-spin text-blue-600" />
-              <span className="ml-2 text-gray-600 dark:text-gray-400">
-                Loading members...
-              </span>
+              <IconLoader className="h-6 w-6 animate-spin text-blue-600" />
+              <span className="ml-2 text-gray-600 dark:text-gray-400">Loading members...</span>
             </div>
-          ) : error ? (
+          ) : fetchError ? (
             <div className="flex items-center justify-center py-8 text-red-600 dark:text-red-400">
-              <IconAlertCircle className="w-5 h-5 mr-2" />
-              <span>{error}</span>
+              <IconAlertCircle className="mr-2 h-5 w-5" />
+              <span>{fetchError}</span>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {members.map((member) => (
                 <div
                   key={member._id}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 dark:border-gray-600 dark:bg-gray-700/50"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-sm font-medium text-white">
                       {member.email.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {member.email}
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                        {member.email}
+                      </span>
+                      {member.isCreator && (
+                        <span className="flex shrink-0 items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                          <IconCrown className="h-3 w-3" />
+                          Owner
                         </span>
-                        {member.isCreator && (
-                          <div className="flex items-center space-x-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-full text-xs">
-                            <IconCrown className="w-3 h-3" />
-                            <span>Owner</span>
-                          </div>
-                        )}
-                        {member.isCurrentUser && (
-                          <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-xs">
-                            You
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        ID: {member._id}
-                      </div>
+                      )}
+                      {member.isCurrentUser && !member.isCreator && (
+                        <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                          You
+                        </span>
+                      )}
                     </div>
                   </div>
-
-                  {/* Remove button - only shown for owner and not for creator */}
                   {isOwner && !member.isCreator && (
                     <button
                       onClick={() => handleRemoveMember(member._id)}
                       disabled={removingMemberId === member._id}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Remove member"
+                      aria-label="Remove member"
+                      className="ml-2 shrink-0 rounded-lg p-1.5 text-gray-400 transition-all duration-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-900/20"
                     >
                       {removingMemberId === member._id ? (
-                        <IconLoader className="w-4 h-4 animate-spin" />
+                        <IconLoader className="h-4 w-4 animate-spin" />
                       ) : (
-                        <IconTrash className="w-4 h-4" />
+                        <IconTrash className="h-4 w-4" />
                       )}
                     </button>
                   )}
                 </div>
               ))}
-
               {members.length === 0 && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                   No members found
-                </div>
+                </p>
               )}
-            </div>
-          )}
-
-          {/* Info message for non-owners */}
-          {!isOwner && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-              <p className="text-sm text-blue-800 dark:text-blue-300">
-                Only the board owner can manage members.
-              </p>
             </div>
           )}
         </div>
 
+        {/* Invite section — owner only, pinned at bottom */}
+        {isOwner && (
+          <div className="shrink-0 border-t border-gray-200/60 p-6 dark:border-gray-700/60">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Add Members
+            </p>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <UserSearch
+                  selectedUsers={selectedUsers}
+                  onSelectionChange={setSelectedUsers}
+                  excludeUserIds={board.members}
+                  placeholder="Search users by email..."
+                />
+              </div>
+              <button
+                onClick={handleInvite}
+                disabled={selectedUsers.length === 0 || isInviting}
+                aria-label="Add selected users"
+                className="flex shrink-0 self-start items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isInviting ? (
+                  <IconLoader className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IconUserPlus className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Add</span>
+              </button>
+            </div>
+
+            {/* Inline invite results */}
+            {inviteResults.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {inviteResults.map((result) => (
+                  <div
+                    key={result.user._id}
+                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-600 dark:bg-gray-700/50"
+                  >
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {result.user.email}
+                    </span>
+                    <span className="ml-2 shrink-0">
+                      {result.status === 'pending' && (
+                        <IconLoader className="h-4 w-4 animate-spin text-blue-500" />
+                      )}
+                      {result.status === 'success' && (
+                        <IconCheck className="h-4 w-4 text-green-500" />
+                      )}
+                      {result.status === 'error' && (
+                        <IconAlertCircle className="h-4 w-4 text-red-500" title={result.error} />
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="flex justify-end p-6 border-t border-gray-200/60 dark:border-gray-700/60">
+        <div className="flex shrink-0 justify-end border-t border-gray-200/60 px-6 py-4 dark:border-gray-700/60">
           <button
             onClick={handleClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 hover:shadow-md transition-all duration-200"
+            className="rounded-lg bg-gray-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-gray-700"
           >
             Close
           </button>

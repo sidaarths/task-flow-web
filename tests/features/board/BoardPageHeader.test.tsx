@@ -25,7 +25,6 @@ jest.mock('@/stores/uiStore', () => ({
     showCreateListModal: false,
     showEditListModal: false,
     showDeleteListModal: false,
-    showInviteUsersModal: false,
     showBoardMembersModal: false,
     selectedList: null,
     selectedTask: null,

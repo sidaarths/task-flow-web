@@ -8,7 +8,6 @@ import {
   IconUsers,
   IconAlertTriangle,
   IconClipboardList,
-  IconUserPlus,
 } from '@tabler/icons-react';
 import {
   DndContext,
@@ -29,10 +28,7 @@ import { useSSE } from '@/hooks/useSSE';
 import { useUIStore } from '@/stores/uiStore';
 import { boardApi } from '@/features/board/api/board';
 import { listApi } from '@/features/list/api/list';
-import {
-  InviteUsersModal,
-  BoardMembersModal,
-} from '@/features/board-member-management';
+import { BoardMembersModal } from '@/features/board-member-management';
 import ListCard, { CreateListModal, EditListModal, DeleteListModal } from '@/features/list';
 import TaskSidePanel from '@/features/task/components/TaskSidePanel';
 import { Button } from '@/components/ui/Button';
@@ -55,7 +51,6 @@ export default function BoardPage() {
     showCreateListModal,
     showEditListModal,
     showDeleteListModal,
-    showInviteUsersModal,
     showBoardMembersModal,
     selectedList,
     selectedTask,
@@ -289,17 +284,6 @@ export default function BoardPage() {
                 </span>
               </Button>
 
-              {isOwner && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => openModal('showInviteUsersModal')}
-                >
-                  <IconUserPlus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Invite</span>
-                </Button>
-              )}
-
               <Button size="sm" onClick={() => openModal('showCreateListModal')}>
                 <IconPlus className="h-4 w-4" />
                 <span className="hidden sm:inline">Add List</span>
@@ -406,18 +390,11 @@ export default function BoardPage() {
         list={selectedList}
         isLoading={isDeletingList}
       />
-      {isOwner && (
-        <InviteUsersModal
-          isOpen={showInviteUsersModal}
-          onClose={() => closeModal('showInviteUsersModal')}
-          boardId={boardId}
-          existingMemberIds={boardData.board.members}
-        />
-      )}
       <BoardMembersModal
         isOpen={showBoardMembersModal}
         onClose={() => closeModal('showBoardMembersModal')}
         board={boardData.board}
+        isOwner={!!isOwner}
       />
     </div>
   );

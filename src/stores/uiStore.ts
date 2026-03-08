@@ -7,7 +7,6 @@ interface UIState {
   showEditListModal: boolean;
   showDeleteListModal: boolean;
   showCreateTaskModal: boolean;
-  showInviteUsersModal: boolean;
   showBoardMembersModal: boolean;
 
   // Selected entities
@@ -24,7 +23,6 @@ interface UIState {
       | 'showEditListModal'
       | 'showDeleteListModal'
       | 'showCreateTaskModal'
-      | 'showInviteUsersModal'
       | 'showBoardMembersModal'
   ) => void;
   closeModal: (
@@ -33,7 +31,6 @@ interface UIState {
       | 'showEditListModal'
       | 'showDeleteListModal'
       | 'showCreateTaskModal'
-      | 'showInviteUsersModal'
       | 'showBoardMembersModal'
   ) => void;
   setSelectedList: (list: List | null) => void;
@@ -46,7 +43,6 @@ export const useUIStore = create<UIState>((set) => ({
   showEditListModal: false,
   showDeleteListModal: false,
   showCreateTaskModal: false,
-  showInviteUsersModal: false,
   showBoardMembersModal: false,
   selectedList: null,
   selectedTask: null,

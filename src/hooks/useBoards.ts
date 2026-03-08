@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { boardsApi } from '@/features/home/api/boards';
 import type { Board, CreateBoardRequest, UpdateBoardRequest } from '@/types';
 
-export const boardsQueryKeys = {
+const boardsQueryKeys = {
   all: ['boards'] as const,
   list: () => [...boardsQueryKeys.all, 'list'] as const,
 };

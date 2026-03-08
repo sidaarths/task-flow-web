@@ -15,24 +15,33 @@ The frontend for Task Flow — a real-time Kanban board application. Built with 
 
 ## Tech Stack
 
-| Concern | Choice |
-|---|---|
-| Framework | Next.js 15 (App Router) |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 |
-| Server state | TanStack React Query v5 |
-| UI state | Zustand |
-| Drag & drop | @dnd-kit/core + @dnd-kit/sortable |
-| HTTP client | Axios |
-| Icons | @tabler/icons-react |
-| Testing | Jest + React Testing Library |
+<!-- AUTO-GENERATED -->
+| Concern | Choice | Version |
+|---|---|---|
+| Framework | Next.js (App Router) | 15.5.9 |
+| Language | TypeScript | 5 |
+| Styling | Tailwind CSS | 4 |
+| Server state | TanStack React Query | 5.90.21 |
+| UI state | Zustand | 5.0.11 |
+| Drag & drop | @dnd-kit/core + @dnd-kit/sortable | 6.3.1 / 10.0.0 |
+| HTTP client | Axios | 1.11.0 |
+| Icons | @tabler/icons-react | 3.34.1 |
+| Animations | Framer Motion | 12.35.0 |
+| Unit testing | Jest + React Testing Library | 30.2.0 |
+| E2E testing | Playwright | 1.58.2 |
+| Code formatting | Prettier | 3.6.2 |
+| Linting | ESLint | 9 |
+<!-- /AUTO-GENERATED -->
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- The Task Flow API running (see [task-flow-api](../task-flow-api/README.md))
+<!-- AUTO-GENERATED -->
+- Node.js 18 or higher
+- npm (comes with Node.js)
+- Task Flow API running locally on `http://localhost:3001` (see [task-flow-api](../task-flow-api/README.md))
+<!-- /AUTO-GENERATED -->
 
 ### Setup
 
@@ -47,13 +56,15 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:3001' > .env.local
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000` in your browser.
 
 ### Environment Variables
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | Base URL of the Task Flow API (no trailing slash) |
+<!-- AUTO-GENERATED -->
+| Variable | Description | Required | Default |
+|---|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Base URL of the Task Flow API (no trailing slash) | Yes | — |
+<!-- /AUTO-GENERATED -->
 
 ## Usage
 
@@ -179,8 +190,73 @@ Optimistic updates keep the UI instant; failures roll back via `queryClient.inva
 
 ## Running Tests
 
+<!-- AUTO-GENERATED -->
+### Unit Tests (Jest + React Testing Library)
+
 ```bash
-npm test                    # run all tests
+npm test                    # run all unit tests
 npm test -- --coverage      # with coverage report
-npm test -- --watch         # watch mode
+npm test -- --watch         # watch mode (re-run on changes)
 ```
+
+**Test configuration:**
+- Test environment: jsdom
+- Setup file: `tests/setup.ts`
+- Test match: `tests/**/*.test.{ts,tsx}`
+- Coverage thresholds: 70% lines/functions, 60% branches
+- Total unit tests: 33
+
+### E2E Tests (Playwright)
+
+```bash
+npm run test:e2e            # run all E2E tests
+npm run test:e2e:ui         # run with interactive UI
+npm run test:e2e -- --debug # run with debugging
+```
+
+**Test configuration:**
+- Test directory: `tests/e2e/`
+- Base URL: `http://localhost:3000`
+- Browser: Chromium (Desktop)
+- Retries: 0 locally, 2 in CI
+- Screenshots: Captured on failure
+- Videos: Retained on failure
+
+**Before running E2E tests, ensure:**
+1. Development server is running: `npm run dev`
+2. Task Flow API is running on `http://localhost:3001`
+<!-- /AUTO-GENERATED -->
+
+## Available Scripts
+
+<!-- AUTO-GENERATED -->
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Start dev server with Turbopack (fast rebuilds) |
+| `npm run build` | Production build with Turbopack optimization |
+| `npm start` | Start production server (requires `npm run build` first) |
+| `npm run lint` | Run ESLint to check code style and issues |
+| `npm run format` | Format code with Prettier |
+| `npm run format:check` | Check formatting without modifying files |
+| `npm test` | Run all Jest unit tests |
+| `npm test -- --watch` | Watch mode for unit tests (re-runs on file changes) |
+| `npm test -- --coverage` | Generate test coverage report |
+| `npm run test:e2e` | Run all Playwright E2E tests |
+| `npm run test:e2e:ui` | Run E2E tests with Playwright UI (interactive) |
+<!-- /AUTO-GENERATED -->
+
+## Contributing
+
+We welcome contributions! Please see [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) for:
+
+- Development setup instructions
+- Code conventions (TypeScript strict mode, Tailwind CSS, component structure)
+- Testing procedures (unit tests and E2E tests)
+- Git workflow and PR checklist
+- Project structure overview
+
+## Support
+
+- **Documentation:** See [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) for development guidelines
+- **API Issues:** Refer to the [task-flow-api](../task-flow-api/README.md) repository
+- **Bug Reports:** Open an issue on GitHub with reproduction steps
