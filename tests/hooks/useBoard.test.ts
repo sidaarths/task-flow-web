@@ -175,3 +175,66 @@ describe('useBoardCacheUpdater', () => {
     expect(cached?.tasks).toHaveLength(0);
   });
 });
+
+
+describe('useBoardCacheUpdater — reorder and invalidate', () => {
+  let qc: QueryClient;
+
+  beforeEach(() => {
+    qc = new QueryClient();
+  });
+
+  function setup(data: BoardWithListsAndTasks) {
+    qc.setQueryData(boardQueryKeys.detail('board-1'), data);
+    const { result } = renderHook(() => useBoardCacheUpdater('board-1'), {
+      wrapper: createWrapper(qc),
+    });
+    return result.current;
+  }
+
+  it('reorderLists updates positions for matching lists', () => {
+    const data = makeBoardData();
+    const list2 = makeList({ _id: 'list-2', position: 1 });
+    data.lists.push(list2);
+    const updater = setup(data);
+    updater.reorderLists([{ _id: 'list-1', position: 5 }, { _id: 'list-2', position: 3 }]);
+    const cached = qc.getQueryData<BoardWithListsAndTasks>(boardQueryKeys.detail('board-1'));
+    expect(cached?.lists.find(l => l._id === 'list-1')?.position).toBe(5);
+    expect(cached?.lists.find(l => l._id === 'list-2')?.position).toBe(3);
+  });
+
+  it('reorderTasks updates positions and listId', () => {
+    const data = makeBoardData();
+    const updater = setup(data);
+    updater.reorderTasks([{ _id: 'task-1', position: 7, listId: 'list-2' }]);
+    const cached = qc.getQueryData<BoardWithListsAndTasks>(boardQueryKeys.detail('board-1'));
+    const t = cached?.tasks.find(t => t._id === 'task-1');
+    expect(t?.position).toBe(7);
+    expect(t?.listId).toBe('list-2');
+  });
+
+  it('all updaters are no-ops when cache is empty', () => {
+    const { result } = renderHook(() => useBoardCacheUpdater('missing-board'), {
+      wrapper: createWrapper(qc),
+    });
+    const u = result.current;
+    expect(() => {
+      u.addList(makeList());
+      u.updateList(makeList());
+      u.removeList('x');
+      u.addTask(makeTask());
+      u.updateTask(makeTask());
+      u.removeTask('x');
+      u.reorderLists([]);
+      u.reorderTasks([]);
+    }).not.toThrow();
+  });
+
+  it('invalidate calls queryClient.invalidateQueries', async () => {
+    const data = makeBoardData();
+    const updater = setup(data);
+    const spy = jest.spyOn(qc, 'invalidateQueries');
+    await updater.invalidate();
+    expect(spy).toHaveBeenCalledWith({ queryKey: boardQueryKeys.detail('board-1') });
+  });
+});

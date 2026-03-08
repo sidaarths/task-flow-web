@@ -4,19 +4,12 @@ import { useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type { Board, CreateBoardRequest, UpdateBoardRequest } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import {
-  CreateBoardModal,
-  EditBoardModal,
-  DeleteBoardModal,
-  BoardCard,
-} from '@/features/board';
-import {
-  IconAlertTriangle,
-  IconLoader2,
-  IconPlus,
-  IconSearch,
-} from '@tabler/icons-react';
+import { CreateBoardModal, EditBoardModal, DeleteBoardModal, BoardCard } from '@/features/board';
+import { IconAlertTriangle, IconLoader2, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useBoards, useCreateBoard, useUpdateBoard, useDeleteBoard } from '@/hooks/useBoards';
+import { Button } from '@/components/ui/Button';
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { DotPattern } from '@/components/magicui/dot-pattern';
 
 export default function HomePage() {
   const searchParams = useSearchParams();
@@ -30,7 +23,6 @@ export default function HomePage() {
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
   const [deletingBoard, setDeletingBoard] = useState<Board | null>(null);
 
-  // React Query — replaces useState/useEffect/loadInitialData
   const { data: boards = [], isLoading, isError, error, refetch } = useBoards();
   const createBoard = useCreateBoard();
   const updateBoard = useUpdateBoard();
@@ -38,11 +30,9 @@ export default function HomePage() {
 
   const filteredBoards = useMemo(() => {
     if (!searchQuery.trim()) return boards;
-    const query = searchQuery.toLowerCase().trim();
+    const q = searchQuery.toLowerCase().trim();
     return boards.filter(
-      (board) =>
-        board.title.toLowerCase().includes(query) ||
-        board.description?.toLowerCase().includes(query)
+      (b) => b.title.toLowerCase().includes(q) || b.description?.toLowerCase().includes(q)
     );
   }, [boards, searchQuery]);
 
@@ -72,9 +62,9 @@ export default function HomePage() {
     return (
       <div className="container mx-auto px-6 py-8">
         <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="flex items-center space-x-3 text-gray-600 dark:text-gray-400">
-            <IconLoader2 className="h-6 w-6 animate-spin" />
-            <span className="text-sm font-medium">Loading your boards...</span>
+          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+            <IconLoader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading your boards…</span>
           </div>
         </div>
       </div>
@@ -86,22 +76,17 @@ export default function HomePage() {
       <div className="container mx-auto px-6 py-8">
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="space-y-4 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-              <IconAlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+              <IconAlertTriangle className="h-7 w-7 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
+              <h3 className="mb-1 text-lg font-medium text-gray-900 dark:text-white">
                 Something went wrong
               </h3>
-              <p className="mb-4 text-gray-600 dark:text-gray-400">
+              <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
                 {error instanceof Error ? error.message : 'Failed to load boards'}
               </p>
-              <button
-                onClick={() => refetch()}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700"
-              >
-                Try Again
-              </button>
+              <Button onClick={() => refetch()}>Try Again</Button>
             </div>
           </div>
         </div>
@@ -111,82 +96,102 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto px-6 py-8">
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
-            {searchQuery ? `Search Results for "${searchQuery}"` : 'Your Boards'}
-          </h1>
-          <p className="text-gray-600/80 dark:text-gray-400/80">
-            {searchQuery
-              ? `Found ${filteredBoards.length} board${filteredBoards.length !== 1 ? 's' : ''} matching your search`
-              : 'Manage your projects and collaborate with your team'}
-          </p>
-        </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:ring-2 focus:ring-blue-500/20"
-        >
-          <IconPlus className="h-4 w-4" />
-          <span>New Board</span>
-        </button>
-      </div>
-
-      {/* Boards Grid */}
-      {boards.length === 0 ? (
-        <div className="py-16 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-            <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
+      {/* Page header */}
+      <BlurFade delay={0}>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="mb-1 text-2xl font-bold text-gray-900 dark:text-white">
+              {searchQuery ? `Results for "${searchQuery}"` : 'Your Boards'}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {searchQuery
+                ? `${filteredBoards.length} board${filteredBoards.length !== 1 ? 's' : ''} found`
+                : 'Manage your projects and collaborate with your team'}
+            </p>
           </div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">No boards yet</h3>
-          <p className="mx-auto mb-6 max-w-md text-gray-600/80 dark:text-gray-400/80">
-            Create your first board to start organizing your projects and tasks
-          </p>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center space-x-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md"
-          >
+          <Button onClick={() => setIsCreateModalOpen(true)} className="shrink-0">
             <IconPlus className="h-4 w-4" />
-            <span>Create Your First Board</span>
-          </button>
+            New Board
+          </Button>
         </div>
-      ) : filteredBoards.length === 0 && searchQuery ? (
-        <div className="py-16 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-            <IconSearch className="h-8 w-8 text-gray-400" />
+      </BlurFade>
+
+      {/* Empty state — no boards at all */}
+      {boards.length === 0 && (
+        <BlurFade delay={0.1}>
+          <div className="relative flex min-h-[50vh] flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white text-center dark:border-gray-700 dark:bg-gray-800/50">
+            <DotPattern className="text-gray-200 dark:text-gray-700" cr={0.8} />
+            <div className="relative z-10 flex flex-col items-center gap-4 p-10">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                <svg
+                  className="h-7 w-7 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="mb-1 text-lg font-medium text-gray-900 dark:text-white">
+                  No boards yet
+                </h3>
+                <p className="max-w-sm text-sm text-gray-500 dark:text-gray-400">
+                  Create your first board to start organizing your projects and tasks
+                </p>
+              </div>
+              <Button size="lg" onClick={() => setIsCreateModalOpen(true)}>
+                <IconPlus className="h-4 w-4" />
+                Create Your First Board
+              </Button>
+            </div>
           </div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">No boards found</h3>
-          <p className="mx-auto mb-6 max-w-md text-gray-600/80 dark:text-gray-400/80">
-            No boards match your search for &quot;{searchQuery}&quot;.
-          </p>
-          <div className="flex items-center justify-center space-x-4">
-            <button
-              onClick={() => router.replace('/home')}
-              className="inline-flex items-center space-x-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-            >
-              <span>Clear Search</span>
-            </button>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md"
-            >
-              <IconPlus className="h-4 w-4" />
-              <span>Create Board</span>
-            </button>
+        </BlurFade>
+      )}
+
+      {/* Empty search results */}
+      {boards.length > 0 && filteredBoards.length === 0 && searchQuery && (
+        <BlurFade delay={0.1}>
+          <div className="py-16 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+              <IconSearch className="h-7 w-7 text-gray-400" />
+            </div>
+            <h3 className="mb-1 text-lg font-medium text-gray-900 dark:text-white">
+              No boards found
+            </h3>
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+              No boards match &quot;{searchQuery}&quot;.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Button variant="secondary" onClick={() => router.replace('/home')}>
+                Clear Search
+              </Button>
+              <Button onClick={() => setIsCreateModalOpen(true)}>
+                <IconPlus className="h-4 w-4" />
+                Create Board
+              </Button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {filteredBoards.map((board) => (
-            <BoardCard
-              key={board._id}
-              board={board}
-              onEdit={handleEditBoard}
-              onDelete={handleDeleteBoard}
-              currentUserId={currentUser?._id}
-            />
+        </BlurFade>
+      )}
+
+      {/* Boards grid with staggered BlurFade */}
+      {filteredBoards.length > 0 && (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {filteredBoards.map((board, i) => (
+            <BlurFade key={board._id} delay={i * 0.05} inView>
+              <BoardCard
+                board={board}
+                onEdit={handleEditBoard}
+                onDelete={handleDeleteBoard}
+                currentUserId={currentUser?._id}
+              />
+            </BlurFade>
           ))}
         </div>
       )}

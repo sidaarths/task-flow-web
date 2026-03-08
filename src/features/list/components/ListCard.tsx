@@ -15,6 +15,9 @@ import type { List, Task } from '@/types';
 import TaskCard from '@/features/task';
 import { TaskCreateModal } from '@/features/task';
 import { listApi } from '@/features/list/api/list';
+import { MagicCard } from '@/components/magicui/magic-card';
+import { Button } from '@/components/ui/Button';
+import { cn } from '@/lib/utils';
 
 interface ListCardProps {
   list: List;
@@ -44,6 +47,7 @@ export default function ListCard({
   totalTasksInList,
 }: ListCardProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,135 +61,132 @@ export default function ListCard({
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
 
-  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
-
-  // Entire card is a drop target for task drag-and-drop
   const { isOver, setNodeRef } = useDroppable({ id: `list-${list._id}` });
-
   const sortedTasks = [...tasks].sort((a, b) => a.position - b.position);
-  const taskIds = sortedTasks.map((task) => task._id);
+  const taskIds = sortedTasks.map((t) => t._id);
+
+  const showFilteredCount =
+    searchQuery && totalTasksInList !== undefined && sortedTasks.length !== totalTasksInList;
 
   return (
     <div
       ref={setNodeRef}
-      className={`bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border w-full min-w-0 overflow-hidden transition-all duration-200 flex flex-col ${
-        isOver
-          ? 'border-blue-500 border-2 shadow-lg ring-2 ring-blue-500 ring-opacity-30'
-          : 'border-gray-200/60 dark:border-gray-700/60'
-      }`}
+      className={cn(
+        'flex w-72 shrink-0 flex-col rounded-xl transition-all duration-200',
+        isOver && 'ring-2 ring-blue-500/40'
+      )}
     >
-      {/* List Header */}
-      <div className="p-3 border-b border-gray-200/60 dark:border-gray-700/60">
-        <div className="flex items-start justify-between">
-          {/* Left/Right arrow buttons + title */}
-          <div className="flex items-center gap-1 flex-1 min-w-0 pr-1">
+      <MagicCard
+        className={cn(
+          'flex flex-col rounded-xl border bg-white shadow-sm dark:bg-gray-800',
+          isOver
+            ? 'border-blue-400 dark:border-blue-500'
+            : 'border-gray-200/60 dark:border-gray-700/60'
+        )}
+      >
+        {/* Header */}
+        <div className="border-b border-gray-200/60 px-3 py-2.5 dark:border-gray-700/60">
+          <div className="flex items-center gap-1">
+            {/* Move left */}
             <button
               onClick={onMoveLeft}
-              className={`p-0.5 rounded flex-shrink-0 transition-all duration-150 ${
-                canMoveLeft
-                  ? 'text-gray-300 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 cursor-pointer'
-                  : 'invisible pointer-events-none'
-              }`}
-              title="Move list left"
               aria-label={`Move ${list.title} left`}
+              title="Move list left"
+              className={cn(
+                'shrink-0 rounded p-0.5 transition-all duration-150',
+                canMoveLeft
+                  ? 'cursor-pointer text-gray-400 hover:bg-gray-200/60 hover:text-gray-600 dark:text-gray-600 dark:hover:bg-gray-700/60 dark:hover:text-gray-300'
+                  : 'invisible pointer-events-none'
+              )}
             >
-              <IconChevronLeft className="w-3.5 h-3.5" />
+              <IconChevronLeft className="h-3.5 w-3.5" />
             </button>
 
-            <h3 className="font-semibold text-gray-900 dark:text-white break-words flex-1 min-w-0 text-center">
+            {/* Title */}
+            <h3 className="flex-1 truncate text-center text-sm font-semibold text-gray-900 dark:text-white">
               {list.title}
             </h3>
 
+            {/* Move right */}
             <button
               onClick={onMoveRight}
-              className={`p-0.5 rounded flex-shrink-0 transition-all duration-150 ${
-                canMoveRight
-                  ? 'text-gray-300 hover:text-gray-600 dark:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 cursor-pointer'
-                  : 'invisible pointer-events-none'
-              }`}
-              title="Move list right"
               aria-label={`Move ${list.title} right`}
+              title="Move list right"
+              className={cn(
+                'shrink-0 rounded p-0.5 transition-all duration-150',
+                canMoveRight
+                  ? 'cursor-pointer text-gray-400 hover:bg-gray-200/60 hover:text-gray-600 dark:text-gray-600 dark:hover:bg-gray-700/60 dark:hover:text-gray-300'
+                  : 'invisible pointer-events-none'
+              )}
             >
-              <IconChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Options menu */}
-          <div className="relative flex-shrink-0" ref={menuRef}>
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded transition-all duration-200"
-              aria-label={`List options for ${list.title}`}
-            >
-              <IconDotsVertical className="w-4 h-4" />
+              <IconChevronRight className="h-3.5 w-3.5" />
             </button>
 
-            {showMenu && (
-              <div className="absolute right-0 top-8 bg-white dark:bg-gray-700 rounded-md shadow-lg border border-gray-200/60 dark:border-gray-600/60 py-1 z-10 min-w-[120px]">
-                <button
-                  onClick={() => {
-                    onEditList(list);
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center space-x-2"
-                >
-                  <IconEdit className="w-4 h-4" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  onClick={() => {
-                    onDeleteList(list);
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center space-x-2"
-                >
-                  <IconTrash className="w-4 h-4" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            )}
+            {/* Options menu */}
+            <div className="relative shrink-0" ref={menuRef}>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                aria-label={`List options for ${list.title}`}
+                className="rounded p-1 text-gray-400 transition-all duration-150 hover:bg-gray-200/60 hover:text-gray-600 dark:hover:bg-gray-700/60 dark:hover:text-gray-300"
+              >
+                <IconDotsVertical className="h-4 w-4" />
+              </button>
+
+              {showMenu && (
+                <div className="absolute right-0 top-8 z-20 min-w-[130px] rounded-lg border border-gray-200/60 bg-white py-1 shadow-lg dark:border-gray-600/60 dark:bg-gray-700">
+                  <button
+                    onClick={() => { onEditList(list); setShowMenu(false); }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-600"
+                  >
+                    <IconEdit className="h-4 w-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => { onDeleteList(list); setShowMenu(false); }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-50 dark:text-red-400 dark:hover:bg-gray-600"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Task count */}
+          <p className="mt-1 text-center text-xs text-gray-400 dark:text-gray-500">
+            {showFilteredCount
+              ? `${sortedTasks.length} of ${totalTasksInList} task${totalTasksInList !== 1 ? 's' : ''} shown`
+              : `${sortedTasks.length} task${sortedTasks.length !== 1 ? 's' : ''}`}
+          </p>
         </div>
 
-        <div className="text-xs text-gray-500/80 dark:text-gray-400/80 mt-1 text-center">
-          {searchQuery &&
-          totalTasksInList !== undefined &&
-          sortedTasks.length !== totalTasksInList ? (
-            <span>
-              {sortedTasks.length} of {totalTasksInList} task
-              {totalTasksInList !== 1 ? 's' : ''} shown
-            </span>
-          ) : (
-            <span>
-              {sortedTasks.length} task{sortedTasks.length !== 1 ? 's' : ''}
-            </span>
-          )}
+        {/* Tasks — scrollable area */}
+        <div className="flex-1 space-y-2 overflow-y-auto p-2.5" style={{ maxHeight: '60vh' }}>
+          <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+            {sortedTasks.map((task) => (
+              <TaskCard
+                key={task._id}
+                task={task}
+                onClick={() => onOpenTask(task)}
+                searchQuery={searchQuery}
+              />
+            ))}
+          </SortableContext>
         </div>
-      </div>
 
-      {/* Tasks */}
-      <div className="p-3 space-y-2 flex-1">
-        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-          {sortedTasks.map((task) => (
-            <TaskCard
-              key={task._id}
-              task={task}
-              onClick={() => onOpenTask(task)}
-              searchQuery={searchQuery}
-            />
-          ))}
-        </SortableContext>
+        {/* Add task — pinned footer */}
+        <div className="border-t border-gray-200/40 p-2 dark:border-gray-700/40">
+          <button
+            onClick={() => setShowCreateTaskModal(true)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-gray-300 px-3 py-2 text-sm text-gray-500 transition-all duration-150 hover:border-blue-400 hover:text-blue-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-blue-500 dark:hover:text-blue-400"
+          >
+            <IconPlus className="h-4 w-4" />
+            Add a task
+          </button>
+        </div>
+      </MagicCard>
 
-        <button
-          onClick={() => setShowCreateTaskModal(true)}
-          className="w-full p-3 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-        >
-          <IconPlus className="w-4 h-4" />
-          <span>Add a task</span>
-        </button>
-      </div>
-
-      {/* Task Create Modal — creation still uses a focused dialog */}
       <TaskCreateModal
         isOpen={showCreateTaskModal}
         onClose={() => setShowCreateTaskModal(false)}
